@@ -12,7 +12,7 @@ Installing from ``rpm`` package
 
  * Get the latest built rpm package from Automake at::
 
-     http://automake.avp.ru/viewproject.php?id=171
+     ...
 
  * Use ``yum`` to install the package, dependencies will be installed automatically:
 
@@ -24,27 +24,24 @@ Installing from ``rpm`` package
 Installing from source using ``pip``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
- * Get the latest version of the ``src`` directory of the `ram` source code from perforce at::
+ * Get the latest version of the of the `ram` source code from github:
 
-     //depot/unix/platform/ram/dev/...
+   .. sourcecode:: console
 
- * Alternatively source codes could be found at::
-
-     https://src.ram.avp.ru
+       $ git clone https://github.com/bootforce-dev/ram-framework.git
 
  * Use ``pip`` to install `the ram framework` to the system:
 
    .. sourcecode:: console
 
-       # cd src
+       $ cd /path/to/ram-framework/src
        # pip install .
 
- * Initialize runtime directories and unit cache:
+ * Use standard library from cloned repository:
 
    .. sourcecode:: console
 
-       # ram-initdb
-       # ram cache
+       # ram paths append /path/to/ram-framework/lib
 
  * It's still required to use yum to install `ram` dependencies:
 
