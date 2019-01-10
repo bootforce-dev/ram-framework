@@ -15,7 +15,7 @@ Contents
    misc/services
    cookbook/index
    releases/index
-   misc/credits
+   appendix/index
 
 Indices and tables
 ==================

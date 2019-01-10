@@ -1,6 +1,8 @@
-# RAM Configuration Framework
+![logo](./doc/_static/ram-logo-small.png)
 
-Framework to manage the product state and configuration
+# the ram framework
+
+Framework to manage product state and configuration
 
 Usage scenarios:
 * Manage settings via the setup wizard
@@ -10,11 +12,11 @@ Usage scenarios:
 * Perform automatic configuration of the product
 * Manage settings for the product development and testing
 
-Ram provides cli and python interfaces for linux host configuration management.
+Framework provides cli and python interfaces for linux host configuration management.
+
 Currently ram supports CentOS 6 and 7 but can be extended to support other linux distros.
 
+Read the docs at: https://ram-framework.readthedocs.io/en/latest/
 
-## Documentation
-
-See ./docs for docs and examples - currently mostly in Russian with plans to translate to English.
-
+The [logo](https://www.oduduka.ru/home/ram-framework) by [Natalya Sveshnikova](mailto:natalya.v.sveshnikova@gmail.com)
+is licensed under the [CC BY 4.0 License](https://creativecommons.org/licenses/by/4.0/).
