@@ -15,8 +15,8 @@ Usage
 .. sourcecode:: console
 
     # ram files sslcert
-    /etc/pki/tls/certs/product.crt
-    /etc/pki/tls/private/product.key
+    /etc/pki/tls/certs/my-appliance.crt
+    /etc/pki/tls/private/my-appliance.key
 
 При использовании python-интерфейса вызов сервиса возвращает список, элементами которого являются полные пути файлов:
 
@@ -24,7 +24,7 @@ Usage
 
     >>> import ram
     >>> print ram.files('sslcert')
-    ['/etc/pki/tls/certs/product.crt', '/etc/pki/tls/private/product.key']
+    ['/etc/pki/tls/certs/my-appliance.crt', '/etc/pki/tls/private/my-appliance.key']
 
 
 Interface
@@ -38,7 +38,7 @@ Interface
     # cat `ram which smtpwiz files`
     /etc/pki/tls/certs/smtpd.crt
     /etc/pki/tls/private/smtpd.key
-    /path/to/product/cert/*.pem
+    /var/opt/my-appliance/cert/*.pem
 
 
 See also

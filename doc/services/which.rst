@@ -16,7 +16,7 @@ Usage
 
     # ram which hostname
     /usr/lib/ram/hostname/about
-    /path/to/the/unit/apply.collectd
+    /opt/my-appliance/lib/ram/hostname/apply.collectd
     /usr/lib/ram/hostname/param
     /usr/lib/ram/hostname/query
     /usr/lib/ram/hostname/apply
@@ -41,11 +41,11 @@ Usage
 
     # ram which hostname a*
     /usr/lib/ram/hostname/apply
-    /path/to/the/unit/apply.collectd
+    /opt/my-appliance/lib/ram/hostname/apply.collectd
     /usr/lib/ram/hostname/about
     # ram which hostname a* i* o*
     /usr/lib/ram/hostname/apply
-    /path/to/the/unit/apply.collectd
+    /opt/my-appliance/lib/ram/hostname/apply.collectd
     /usr/lib/ram/hostname/about
     /usr/lib/ram/hostname/input
 
@@ -60,7 +60,7 @@ Usage
     >>> pprint.pprint(ram.which('hostname'))
     {'about': '/usr/lib/ram/hostname/about',
      'apply': '/usr/lib/ram/hostname/apply',
-     'apply.collectd': '/path/to/the/unit/apply.collectd',
+     'apply.collectd': '/opt/my-appliance/lib/ram/hostname/apply.collectd',
      'input': '/usr/lib/ram/hostname/input',
      'param': '/usr/lib/ram/hostname/param',
      'query': '/usr/lib/ram/hostname/query',
@@ -68,7 +68,7 @@ Usage
     >>> pprint.pprint(ram.which('hostname', 'a*', 'i*', 'o*'))
     {'about': '/usr/lib/ram/hostname/about',
      'apply': '/usr/lib/ram/hostname/apply',
-     'apply.collectd': '/path/to/the/unit/apply.collectd',
+     'apply.collectd': '/opt/my-appliance/lib/ram/hostname/apply.collectd',
      'input': '/usr/lib/ram/hostname/input'}
 
 
