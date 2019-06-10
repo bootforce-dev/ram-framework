@@ -1,0 +1,10 @@
+include LICENSE
+include README.md
+
+graft share
+graft tests
+graft lib
+graft etc
+
+global-exclude *.pyo
+global-exclude *.pyc

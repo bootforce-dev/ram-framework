@@ -5,10 +5,6 @@ import sys
 from pkgutil import ImpLoader, ImpImporter, ModuleType
 
 
-__version__ = '0.4.9'
-__release__ = ''
-
-
 class _RamModule(ModuleType):
     _classes = {}
     _modapis = {}
