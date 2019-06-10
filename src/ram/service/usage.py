@@ -5,7 +5,7 @@ from ram.classes import LineResults
 
 from ram import service
 
-from ram import __version__, __release__
+from ram.version import __version__
 
 
 class __api__(Service):
