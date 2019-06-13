@@ -5,11 +5,29 @@ from setuptools import setup, find_packages
 from pbr.version import VersionInfo
 
 try:
-    from setuptools.command.install_data import install_data
+    from setuptools.command.install import install as _install
 except ImportError:
-    from distutils.command.install_data import install_data
+    from distutils.command.install import install as _install
 
-from setuptools.command.easy_install import is_python_script, get_script_header
+try:
+    from setuptools.command.build import build as _build
+except ImportError:
+    from distutils.command.build import build as _build
+
+try:
+    from setuptools.command.build_scripts import build_scripts as _build_scripts
+except ImportError:
+    from distutils.command.build_scripts import build_scripts as _build_scripts
+
+try:
+    from setuptools.command.build_py import build_py as _build_py
+except ImportError:
+    from distutils.comman.build_py import build_py as _build_py
+
+try:
+    from setuptools.cmd import Command
+except ImportError:
+    from distutils.cmd import Command
 
 import os
 
@@ -18,39 +36,84 @@ __project__ = 'ram-framework'
 __version__ = VersionInfo(__project__).release_string()
 
 
-def list_units(install, dirroot):
-    for dirpath, dirs, files in os.walk(dirroot):
-        filelst = [os.path.join(dirpath, _) for _ in files]
-        if filelst:
-            yield (os.path.join(install, dirpath), filelst)
+class build(_build):
+    sub_commands = _build.sub_commands + [
+        ('build_ram', lambda self: True),
+    ]
 
-class _install_data(install_data):
+
+class install(_install):
+    sub_commands = _install.sub_commands + [
+        ('install_ram', lambda self: True),
+    ]
+
+
+class build_ram(Command):
+    def initialize_options(self):
+        self.lib_root = None
+        self.build_dir = None
+
+    def finalize_options(self):
+        if self.build_dir is None:
+            build_base = self.get_finalized_command('build').build_base
+            self.build_dir = os.path.join(build_base, 'ram')
+
+        if self.lib_root is None:
+            self.lib_root = 'lib'
+
     def run(self):
-        install_data.run(self)
-        for _file in self.outfiles:
-            if not os.path.isfile(_file):
-                continue
+        for dirpath, dirs, files in os.walk(self.lib_root):
 
-            if not os.access(_file, os.X_OK):
-                continue
+            scripts = []
+            modules = []
+            various = []
 
-            with open(_file, 'r') as _:
-                _exec = _.readline()
-                _text = _.read()
+            for _ in files:
+                _name, _ext = os.path.splitext(_)
+                _path = os.path.join(dirpath, _)
+                if os.path.isfile(_path) and os.access(_path, os.X_OK):
+                    scripts.append(_path)
+                elif _ext == '.py':
+                    modules.append(_name)
+                else:
+                    various.append(_)
 
-            if not _exec.startswith('#!'):
-                continue
+            if scripts:
+                build_scripts = _build_scripts(self.distribution)
+                build_scripts.ensure_finalized()
 
-            try:
-                compile(_text, _file, 'exec')
-            except SyntaxError:
-                continue
+                build_scripts.build_dir = os.path.join(self.build_dir, dirpath)
+                build_scripts.scripts = scripts
 
-            _exec = get_script_header(_exec)
+                build_scripts.run()
 
-            with open(_file, 'w') as _:
-                _.write(_exec)
-                _.write(_text)
+            if modules or various:
+                build_py = _build_py(self.distribution)
+                build_py.ensure_finalized()
+
+                build_py.build_lib = os.path.join(self.build_dir, dirpath)
+                build_py.py_modules = []
+                build_py.package_dir = {'': dirpath}
+                build_py.packages = ['']
+
+                build_py.package_data = {}
+
+                build_py.data_files = [('', dirpath, build_py.build_lib, various)]
+
+                build_py.run()
+
+
+class install_ram(Command):
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        pass
 
 
 if __name__ == '__main__':
@@ -66,10 +129,19 @@ if __name__ == '__main__':
         license='MIT',
         package_dir={'': 'src'},
         packages=find_packages(where='src', exclude=['tests', 'tests.*']),
+        ram_units=[
+            ('lib/ram', 'lib/ram'),
+        ],
         data_files=[
             ('share/ram', ['share/ram/srv.functions', 'share/ram/ram.functions']),
             ('/etc/bash_completion.d', ['etc/bash_completion.d/ram']),
-        ] + list(list_units('', 'lib')),
+        ],# + list(list_units('', 'lib')),
+        cmdclass={
+            'build': build,
+            'build_ram': build_ram,
+            'install': install,
+            'install_ram': install_ram,
+        },
         scripts=['bin/ram', 'bin/ram-symbols'],
         classifiers=(
             'Development Status :: 3 - Alpha',
