@@ -1,33 +1,18 @@
 #!/usr/bin/python
 
 from setuptools import setup, find_packages
+from setuptools import Distribution, Command
 
 from pbr.version import VersionInfo
 
-try:
-    from setuptools.command.install import install as _install
-except ImportError:
-    from distutils.command.install import install as _install
+def _orig_command(command):
+    try:
+        return __import__('setuptools.command.%s' % command, fromlist=['*'])
+    except ImportError:
+        return __import__('distutils.command.%s' % command, fromlist=['*'])
 
-try:
-    from setuptools.command.build import build as _build
-except ImportError:
-    from distutils.command.build import build as _build
-
-try:
-    from setuptools.command.build_scripts import build_scripts as _build_scripts
-except ImportError:
-    from distutils.command.build_scripts import build_scripts as _build_scripts
-
-try:
-    from setuptools.command.build_py import build_py as _build_py
-except ImportError:
-    from distutils.comman.build_py import build_py as _build_py
-
-try:
-    from setuptools.cmd import Command
-except ImportError:
-    from distutils.cmd import Command
+_install = _orig_command('install').install
+_build = _orig_command('build').build
 
 import os
 
@@ -50,60 +35,85 @@ class install(_install):
 
 class build_ram(Command):
     def initialize_options(self):
-        self.lib_root = None
-        self.build_dir = None
+        self.build_base = None
+        self.executable = None
+        self.compile = None
+        self.optimize = None
 
     def finalize_options(self):
-        if self.build_dir is None:
-            build_base = self.get_finalized_command('build').build_base
-            self.build_dir = os.path.join(build_base, 'ram')
+        self.set_undefined_options('build',
+            ('build_base', 'build_base'),
+        )
 
-        if self.lib_root is None:
-            self.lib_root = 'lib'
+        self.set_undefined_options('build_scripts',
+            ('executable', 'executable'),
+        )
+
+        self.set_undefined_options('build_py',
+            ('compile', 'compile'),
+            ('optimize', 'optimize'),
+        )
+
+        for (_dst, _src), _dist in self.distribution.ram_dists.items():
+            _build = _dist.reinitialize_command('build', reinit_subcommands=True)
+            _build.build_base = os.path.join(self.build_base, 'ram', _src, '__pybuild__')
+
+            _build_scripts = _dist.reinitialize_command('build_scripts')
+            _build_scripts.executable = self.executable
+
+            _build_py = _dist.reinitialize_command('build_py')
+            _build_py.compile = self.compile
+            _build_py.optimize = self.optimize
+
 
     def run(self):
-        for dirpath, dirs, files in os.walk(self.lib_root):
-
-            scripts = []
-            modules = []
-            various = []
-
-            for _ in files:
-                _name, _ext = os.path.splitext(_)
-                _path = os.path.join(dirpath, _)
-                if os.path.isfile(_path) and os.access(_path, os.X_OK):
-                    scripts.append(_path)
-                elif _ext == '.py':
-                    modules.append(_name)
-                else:
-                    various.append(_)
-
-            if scripts:
-                build_scripts = _build_scripts(self.distribution)
-                build_scripts.ensure_finalized()
-
-                build_scripts.build_dir = os.path.join(self.build_dir, dirpath)
-                build_scripts.scripts = scripts
-
-                build_scripts.run()
-
-            if modules or various:
-                build_py = _build_py(self.distribution)
-                build_py.ensure_finalized()
-
-                build_py.build_lib = os.path.join(self.build_dir, dirpath)
-                build_py.py_modules = []
-                build_py.package_dir = {'': dirpath}
-                build_py.packages = ['']
-
-                build_py.package_data = {}
-
-                build_py.data_files = [('', dirpath, build_py.build_lib, various)]
-
-                build_py.run()
+        for (_dst, _src), _dist in self.distribution.ram_dists.items():
+            _dist.run_command('build')
 
 
 class install_ram(Command):
+    def initialize_options(self):
+        self.root = None
+        self.compile = None
+        self.optimize = None
+
+    def finalize_options(self):
+        self.set_undefined_options('install',
+            ('root', 'root'),
+        )
+
+        self.set_undefined_options('install_lib',
+            ('compile', 'compile'),
+            ('optimize', 'optimize'),
+        )
+
+        for (_dst, _src), _dist in self.distribution.ram_dists.items():
+            _install = _dist.reinitialize_command('install', reinit_subcommands=True)
+            _install.root = self.root
+
+            _install.install_scripts = os.path.join('$base', _dst)
+            _install.install_lib = os.path.join('$base', _dst)
+
+            _install_scripts = _dist.reinitialize_command('install_scripts')
+
+            _install_lib = _dist.reinitialize_command('install_lib')
+            _install_lib.compile = self.compile
+            _install_lib.optimize = self.optimize
+
+
+    def get_outputs(self):
+        return sum(
+            (_dist.get_command_obj('install', create=0).get_outputs()
+            for _, _dist in self.distribution.ram_dists.items()
+            ), []
+        )
+
+    def run(self):
+        for (_dst, _src), _dist in self.distribution.ram_dists.items():
+            _dist.run_command('install')
+
+
+class DummyCommand(Command):
     user_options = []
 
     def initialize_options(self):
@@ -114,6 +124,55 @@ class install_ram(Command):
 
     def run(self):
         pass
+
+    def get_outputs(self): return []
+
+
+class RamDistribution(Distribution):
+    def __init__(self, attrs=None):
+        self.ram_units = None
+
+        Distribution.__init__(self, attrs)
+
+        self.ram_dists = {}
+
+        for ram_dst, ram_src in self.ram_units:
+            for srcpath, dirs, files in os.walk(ram_src):
+                dstpath = os.path.normpath(
+                    os.path.join(ram_dst, os.path.relpath(srcpath, ram_src))
+                )
+
+                scripts = []
+                modules = []
+                various = []
+
+                for _ in files:
+                    _name, _ext = os.path.splitext(_)
+                    _path = os.path.join(srcpath, _)
+                    if os.path.isfile(_path) and os.access(_path, os.X_OK):
+                        scripts.append(_path)
+                    elif _ext == '.py':
+                        modules.append(_name)
+                    else:
+                        various.append(_)
+
+                self.ram_dists[dstpath, srcpath] = Distribution(dict(
+                    scripts=scripts,
+                    package_dir={'': srcpath},
+                    packages=[''],
+                    package_data={'': various},
+                    options=dict(
+                        install_scripts={
+                            'no_ep': True,
+                        },
+                    ),
+                    cmdclass={
+                        'egg_info': DummyCommand,
+                        'install_egg_info': DummyCommand,
+                    },
+                    script_name=self.script_name,
+                    script_args=self.script_args,
+                ))
 
 
 if __name__ == '__main__':
@@ -135,7 +194,8 @@ if __name__ == '__main__':
         data_files=[
             ('share/ram', ['share/ram/srv.functions', 'share/ram/ram.functions']),
             ('/etc/bash_completion.d', ['etc/bash_completion.d/ram']),
-        ],# + list(list_units('', 'lib')),
+        ],
+        distclass=RamDistribution,
         cmdclass={
             'build': build,
             'build_ram': build_ram,
@@ -158,5 +218,5 @@ if __name__ == '__main__':
             'Topic :: System :: Installation/Setup',
             'Topic :: System :: Systems Administration',
             'Topic :: Utilities',
-        )
+        ),
     )
