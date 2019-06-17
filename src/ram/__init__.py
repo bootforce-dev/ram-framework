@@ -5,6 +5,16 @@ import sys
 from pkgutil import ImpLoader, ImpImporter, ModuleType
 
 
+try:
+    version_path = '%s/VERSION' % __path__[0]
+    with open(version_path) as version_file:
+        __version__ = version_file.read().strip()
+    if not __version__:
+        raise Exception()
+except Exception:
+    __version__ = '(unknown)'
+
+
 class _RamModule(ModuleType):
     _classes = {}
     _modapis = {}

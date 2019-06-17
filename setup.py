@@ -3,8 +3,6 @@
 from setuptools import setup, find_packages
 from setuptools import Distribution, Command
 
-from pbr.version import VersionInfo
-
 def _orig_command(command):
     try:
         return __import__('setuptools.command.%s' % command, fromlist=['*'])
@@ -16,15 +14,25 @@ _build = _orig_command('build').build
 
 import os
 
-
-__project__ = 'ram-framework'
-__version__ = VersionInfo(__project__).release_string()
-
-
 class build(_build):
     sub_commands = _build.sub_commands + [
         ('build_ram', lambda self: True),
     ]
+
+    def run(self):
+        _build.run(self)
+
+        if not self.dry_run:
+            _data_of = 'ram'
+            build_py = self.get_finalized_command('build_py')
+            for _package, _, _builddir, _ in build_py.data_files:
+                if _package == _data_of:
+                    break
+            else:
+                raise KeyError(_data_of)
+            version_path = os.path.join(_builddir, 'VERSION')
+            with open(version_path, 'w') as version_file:
+                version_file.write(self.distribution.get_version())
 
 
 class install(_install):
@@ -176,6 +184,11 @@ class RamDistribution(Distribution):
 
 
 if __name__ == '__main__':
+    from pbr.version import VersionInfo
+
+    __project__ = 'ram-framework'
+    __version__ = VersionInfo(__project__).release_string()
+
     setup(
         name=__project__,
         version=__version__,
@@ -188,6 +201,7 @@ if __name__ == '__main__':
         license='MIT',
         package_dir={'': 'src'},
         packages=find_packages(where='src', exclude=['tests', 'tests.*']),
+        package_data={'': ['VERSION']},
         ram_units=[
             ('lib/ram', 'lib/ram'),
         ],
