@@ -1,18 +1,28 @@
 #!/usr/bin/python
 
 from setuptools import setup, find_packages
-from setuptools import Distribution, Command
 
 from pbr.version import VersionInfo
 
-def _orig_command(command):
-    try:
-        return __import__('setuptools.command.%s' % command, fromlist=['*'])
-    except ImportError:
-        return __import__('distutils.command.%s' % command, fromlist=['*'])
+try:
+    from setuptools.command.install import install as _install
+except ImportError:
+    from distutils.command.install import install as _install
 
-_install = _orig_command('install').install
-_build = _orig_command('build').build
+try:
+    from setuptools.command.build import build as _build
+except ImportError:
+    from distutils.command.build import build as _build
+
+try:
+    from setuptools.cmd import Command
+except ImportError:
+    from distutils.cmd import Command
+
+try:
+    from setuptools.dist import Distribution
+except ImportError:
+    from distutils.dist import Distribution
 
 import os
 
@@ -22,94 +32,82 @@ __version__ = VersionInfo(__project__).release_string()
 
 
 class build(_build):
-    sub_commands = _build.sub_commands + [
-        ('build_ram', lambda self: True),
-    ]
+    def __init__(self, dist):
+        self.default = None
 
+        _build.__init__(self, dist)
 
-class install(_install):
-    sub_commands = _install.sub_commands + [
-        ('install_ram', lambda self: True),
-    ]
-
-
-class build_ram(Command):
     def initialize_options(self):
-        self.build_base = None
-        self.executable = None
-        self.compile = None
-        self.optimize = None
+        if self.default is None:
+            already = self.__dict__
+
+        _build.initialize_options(self)
+
+        if self.default is None:
+            self.default = dict((k, v) for k, v in self.__dict__.items() if not k in already)
 
     def finalize_options(self):
-        self.set_undefined_options('build',
-            ('build_base', 'build_base'),
-        )
+        if self.default is None:
+            raise RuntimeError('no defaults')
 
-        self.set_undefined_options('build_scripts',
-            ('executable', 'executable'),
-        )
+        for key in self.default:
+            self.default[key] = getattr(self, key)
 
-        self.set_undefined_options('build_py',
-            ('compile', 'compile'),
-            ('optimize', 'optimize'),
-        )
-
-        for (_dst, _src), _dist in self.distribution.ram_dists.items():
-            _build = _dist.reinitialize_command('build', reinit_subcommands=True)
-            _build.build_base = os.path.join(self.build_base, 'ram', _src, '__pybuild__')
-
-            _build_scripts = _dist.reinitialize_command('build_scripts')
-            _build_scripts.executable = self.executable
-
-            _build_py = _dist.reinitialize_command('build_py')
-            _build_py.compile = self.compile
-            _build_py.optimize = self.optimize
-
+        _build.finalize_options(self)
 
     def run(self):
+        _build.run(self)
+
         for (_dst, _src), _dist in self.distribution.ram_dists.items():
+            __build = _dist.reinitialize_command('build', reinit_subcommands=1)
+
+            __build.build_base = os.path.join(self.build_base, 'ram', _src, '__pybuild__')
+
             _dist.run_command('build')
+            
 
+class install(_install):
+    def __init__(self, dist):
+        self.default = None
 
-class install_ram(Command):
+        _install.__init__(self, dist)
+
     def initialize_options(self):
-        self.root = None
-        self.compile = None
-        self.optimize = None
+        if self.default is None:
+            already = self.__dict__
+
+        _install.initialize_options(self)
+
+        if self.default is None:
+            self.default = dict((k, v) for k, v in self.__dict__.items() if not k in already)
 
     def finalize_options(self):
-        self.set_undefined_options('install',
-            ('root', 'root'),
-        )
+        if self.default is None:
+            raise RuntimeError('no defaults')
 
-        self.set_undefined_options('install_lib',
-            ('compile', 'compile'),
-            ('optimize', 'optimize'),
-        )
+        for key in self.default:
+            self.default[key] = getattr(self, key)
 
-        for (_dst, _src), _dist in self.distribution.ram_dists.items():
-            _install = _dist.reinitialize_command('install', reinit_subcommands=True)
-            _install.root = self.root
-
-            _install.install_scripts = os.path.join('$base', _dst)
-            _install.install_lib = os.path.join('$base', _dst)
-
-            _install_scripts = _dist.reinitialize_command('install_scripts')
-
-            _install_lib = _dist.reinitialize_command('install_lib')
-            _install_lib.compile = self.compile
-            _install_lib.optimize = self.optimize
-
+        _install.finalize_options(self)
 
     def get_outputs(self):
         return sum(
-            (_dist.get_command_obj('install', create=0).get_outputs()
+            (_dist.get_command_obj('install').get_outputs()
             for _, _dist in self.distribution.ram_dists.items()
             ), []
         )
 
     def run(self):
+        _install.run(self)
+
         for (_dst, _src), _dist in self.distribution.ram_dists.items():
+            __install = _dist.reinitialize_command('install', reinit_subcommands=1)
+
+            __install.root = self.root
+
+            __install.install_scripts = os.path.join('$base', _dst)
+            __install.install_lib = os.path.join('$base', _dst)
+
             _dist.run_command('install')
 
 
@@ -173,6 +171,8 @@ class RamDistribution(Distribution):
                     script_name=self.script_name,
                     script_args=self.script_args,
                 ))
+                self.ram_dists[dstpath, srcpath].command_options = self.command_options
+                self.ram_dists[dstpath, srcpath].command_options.setdefault('install_scripts', {})['no_ep'] = ('', True)
 
 
 if __name__ == '__main__':
@@ -193,16 +193,14 @@ if __name__ == '__main__':
         ],
         data_files=[
             ('share/ram', ['share/ram/srv.functions', 'share/ram/ram.functions']),
-            ('/etc/bash_completion.d', ['etc/bash_completion.d/ram']),
+            ('/etc/bash_completion.d', ['share/bash-completion/ram']),
         ],
         distclass=RamDistribution,
         cmdclass={
             'build': build,
-            'build_ram': build_ram,
             'install': install,
-            'install_ram': install_ram,
         },
-        scripts=['bin/ram', 'bin/ram-symbols'],
+        scripts=['src/bin/ram', 'src/bin/ram-symbols'],
         classifiers=(
             'Development Status :: 3 - Alpha',
             'Environment :: Console',
