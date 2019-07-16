@@ -4,7 +4,7 @@ import crypt
 
 import ram.widgets
 
-from utils import ValidateUsername, ValidateSamePassword
+from utils import ValidateUsername, ValidateSamePassword, ValidateDictPath
 from utils import ValidatePasswordRequirements, GenerateSalt
 
 
@@ -22,6 +22,11 @@ def RunUsernamePasswordInput(header, text, username="", password="", editable=Tr
         username = ValidateUsername(username) if username else ""
     except ValueError as err:
         raise RuntimeError("username: " + str(err))
+
+    try:
+        dictpath = ValidateDictPath(pwdict or None)
+    except ValueError as err:
+        raise RuntimeError("Cannot use dict: %s" % pwdict)
 
     if not hashes:
         raise RuntimeError("At least one hash algorithm should be specified.")
@@ -42,7 +47,7 @@ def RunUsernamePasswordInput(header, text, username="", password="", editable=Tr
             return ValidateUsername(value, banned=banned)
 
         def newpass_check(self, value):
-            return ValidateSamePassword(self.newpass, self.confirm, self.username, pwdict)
+            return ValidateSamePassword(self.newpass, self.confirm, self.username, dictpath)
 
         def oldpass_check(self, value, password=password):
             prefix, sep, hashed = password.rpartition("$")

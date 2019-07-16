@@ -26,6 +26,23 @@ def ValidateUsername(value, banned=None):
         return ValidateNonEmpty(value)
 
 
+def ValidateDictPath(dictpath):
+    if dictpath is None:
+        return dictpath
+    elif dictpath == '-':
+        dictpath = ''
+
+    pwqs = pwquality.PWQSettings()
+    pwqs.dictpath = dictpath
+
+    try:
+        pwqs.generate(0)
+    except pwquality.PWQError as e:
+        raise ValueError()
+
+    return dictpath
+
+
 def ValidatePassword(password, username=None, dictpath=None):
     pwqs = pwquality.PWQSettings()
     pwqs.difok = min(5, len(password)/2)
@@ -40,10 +57,12 @@ def ValidatePassword(password, username=None, dictpath=None):
     try:
         pwqs.check(password, None, username)
     except pwquality.PWQError as e:
-        if not dictpath and e.args[0] == -22:
-            return ""
+        if e.args[0] == -22 and dictpath is None:
+            pass
         else:
             raise ValueError(e.args[1].lower())
+
+    return password
 
 
 ValidatePasswordRequirements = (
