@@ -42,7 +42,7 @@ def RunUsernamePasswordInput(header, text, username="", password="", editable=Tr
             return ValidateUsername(value, banned=banned)
 
         def newpass_check(self, value):
-            return ValidateSamePassword(self.newpass, self.confirm, self.username, pwdict=pwdict)
+            return ValidateSamePassword(self.newpass, self.confirm, self.username, pwdict)
 
         def oldpass_check(self, value, password=password):
             prefix, sep, hashed = password.rpartition("$")

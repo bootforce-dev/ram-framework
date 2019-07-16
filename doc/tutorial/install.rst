@@ -53,6 +53,6 @@ Installing from source using ``pip``
 
    .. sourcecode:: console
 
-       # yum install libuser-python cracklib-python python-dateutil parted
+       # yum install libuser-python python-pwquality python-dateutil parted
 
 

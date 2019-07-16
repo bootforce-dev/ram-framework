@@ -2,14 +2,7 @@
 
 import random
 import string
-import cracklib
-
-cracklib.FascistCheck_ = cracklib.FascistCheck
-cracklib.FascistCheck = lambda passwd, pwdict=None: (
-    cracklib.FascistCheck_(passwd, pwdict) if pwdict is not None else
-    None
-)
-
+import pwquality
 
 import ram.context
 
@@ -33,15 +26,24 @@ def ValidateUsername(value, banned=None):
         return ValidateNonEmpty(value)
 
 
-def ValidatePassword(newpass, oldpass=None, pwdict=None):
-    pwlen = len(newpass)
-    # minimum of 8 characters, minimum of 3 character classes.
-    # it's handled via character class credit variables.
-    cracklib.MIN_LENGTH = max(8, pwlen) + 3 + int(pwlen < 8)
-    # reduce similarity tolerance in case of short passwords.
-    cracklib.DIFF_OK = min(5, pwlen / 2)
+def ValidatePassword(password, username=None, dictpath=None):
+    pwqs = pwquality.PWQSettings()
+    pwqs.difok = min(5, len(password)/2)
+    pwqs.minlen = 8
+    pwqs.ucredit = 0
+    pwqs.lcredit = 0
+    pwqs.dcredit = 0
+    pwqs.ocredit = 0
+    pwqs.minclass = 3
+    pwqs.dictpath = dictpath
 
-    return cracklib.VeryFascistCheck(newpass, oldpass, pwdict or None)
+    try:
+        pwqs.check(password, None, username)
+    except pwquality.PWQError as e:
+        if not dictpath and e.args[0] == -22:
+            return ""
+        else:
+            raise ValueError(e.args[1].lower())
 
 
 ValidatePasswordRequirements = (
@@ -54,26 +56,17 @@ ValidatePasswordRequirements = (
 )
 
 
-def ValidateBasePassword(password, username, pwdict=None):
-    try:
-        return ValidatePassword(password, username, pwdict)
-    except ValueError as eorig:
-        try:
-            ValidatePassword(password, None, pwdict).split('') # force valueerror
-        except ValueError as epass:
-            if str(eorig) != str(epass):
-                raise ValueError("based on username")
-            else:
-                raise
+def ValidateBasePassword(password, username, dictpath=None):
+    return ValidatePassword(password, username, dictpath)
 
 
-def ValidateSamePassword(password, confirm, username, pwdict=None):
-    if not password == confirm:
+def ValidateSamePassword(password, password_, username, dictpath=None):
+    if not password == password_:
         raise ValueError("doesn't match")
     else:
         return (
             ValidateNonEmpty(password) and
-            ValidateBasePassword(password, username, pwdict)
+            ValidateBasePassword(password, username, dictpath)
         )
 
 
