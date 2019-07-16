@@ -29,6 +29,9 @@ def RunUsernamePasswordInput(header, text, username="", password="", editable=Tr
     if password and not password.startswith("$"):
         raise RuntimeError("Old password is not encrypted with the given hash.")
 
+    if password and forced:
+        raise RuntimeError("Cannot force if old password specified.")
+
     class AccountValidate(object):
         def __init__(self, *args):
             if len(args) != 4:

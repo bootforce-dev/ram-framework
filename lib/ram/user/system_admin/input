@@ -24,7 +24,7 @@ if __name__ == '__main__':
         banned = existing + ([] if params.rootok else ["root"])
     else:
         username = config['username']
-        password = "" if params.forcenew else config['password']
+        password = "" if params.forced else config['password']
         ingroups = config['ingroups']
         useshell = config['useshell']
         editable = False
