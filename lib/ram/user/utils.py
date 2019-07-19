@@ -45,7 +45,7 @@ def ValidateDictPath(dictpath):
 
 def ValidatePassword(password, username=None, dictpath=None):
     pwqs = pwquality.PWQSettings()
-    pwqs.difok = min(5, len(password)/2)
+    pwqs.difok = min(5, (min(len(username), len(password)) + 1) / 2)
     pwqs.minlen = 8
     pwqs.ucredit = 0
     pwqs.lcredit = 0
@@ -55,12 +55,17 @@ def ValidatePassword(password, username=None, dictpath=None):
     pwqs.dictpath = dictpath
 
     try:
-        pwqs.check(password, None, username)
+        try:
+            pwqs.check(password, username, None)
+        except pwquality.PWQError as e:
+            if e.args[0] == -9:
+                pwquality.PWQSettings().check('12345678', None, '12345678')
+            elif e.args[0] == -22 and dictpath is None:
+                pass
+            else:
+                raise
     except pwquality.PWQError as e:
-        if e.args[0] == -22 and dictpath is None:
-            pass
-        else:
-            raise ValueError(e.args[1].lower())
+        raise ValueError(e.args[1].lower())
 
     return password
 
