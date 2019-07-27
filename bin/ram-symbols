@@ -18,6 +18,10 @@ def _symbols_set(config, key, value):
     config[key] = value
     return config
 
+def _symbols_del(config, key):
+    del config[key]
+    return config
+
 def _symbols_lst(config, key=None):
     if key is not None:
         config = config[key]
@@ -47,6 +51,7 @@ _actions = {
     'cut': _symbols_cut,
     'put': _symbols_put,
     'new': _symbols_new,
+    'del': _symbols_del,
 }
 
 
