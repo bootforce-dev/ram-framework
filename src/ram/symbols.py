@@ -133,6 +133,18 @@ class Symbols(MutableMapping, dict):
             dict.__delitem__(self, keyhead)
 
 
+    def _keyparents(self, keylist=None, parents=True):
+        if keylist is None:
+            keylist = []
+
+        symbols = self
+
+        while parents and symbols.parkey:
+            keylist.insert(0, symbols.parkey)
+            symbols = symbols.parent
+
+        return symbols, keylist
+
     def _keyprepare(self, keypath, parents=False):
         if isinstance(keypath, basestring):
             keylist = keypath.split('.') if keypath else []
@@ -148,24 +160,30 @@ class Symbols(MutableMapping, dict):
             if not all(c.isalnum() or c in ['_','-'] for c in keyitem):
                 raise TypeError("Symbols can use only alnums, dash and underscore in key elements, not `%s`" % (keyitem,))
 
-        symbols = self
-        while parents and symbols.parkey:
-            keylist.insert(0, symbols.parkey)
-            symbols = symbols.parent
+        return self._keyparents(keylist, parents)
 
-        return symbols, keylist
+    def _keysymbols(self, keylist=None):
+        parents, keylist = self._keyparents(keylist)
+
+        if keylist:
+            return parents.__getitem__(keylist, keytest=True)
+        else:
+            return parents
 
     def __contains__(self, keypath):
         return bool(self.__getitem__(keypath, keytest=True))
 
     def __iter__(self):
-        return dict.__iter__(self)
+        return dict.__iter__(self._keysymbols())
 
     def __len__(self):
-        return dict.__len__(self)
+        return dict.__len__(self._keysymbols())
+
+    def __repr__(self):
+        return dict.__repr__(self._keysymbols())
 
     def __str__(self):
-        return "\n".join(build(**self))
+        return "\n".join(build(**self._keysymbols()))
 
 
 import ram.channel
