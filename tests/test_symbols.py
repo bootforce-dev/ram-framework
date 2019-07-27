@@ -12,7 +12,7 @@ import ram.symbols
 class SymbolsTestCase(unittest.TestCase):
     """cycling"""
 
-    def test_empty_cycle(self):
+    def test_empty_cycle_run(self):
         """empty ram.symbols"""
         assert str(ram.symbols()) == ""
 
@@ -45,6 +45,20 @@ class StructsTestCase(unittest.TestCase):
         assert self.symbols['root', 'present', 'sub'] == '_'
         assert self.symbols['root', 'present']['sub'] == '_'
         assert self.symbols['root']['present', 'sub'] == '_'
+
+        present = self.symbols['root.present']
+        assert present['sub'] == '_'
+
+        present = self.symbols['root']['present']
+        assert present['sub'] == '_'
+
+        present = self.symbols['root', 'present']
+        assert present['sub'] == '_'
+
+        root = self.symbols['root']
+        assert root['present.sub'] == '_'
+        assert root['present']['sub'] == '_'
+        assert root['present', 'sub'] == '_'
 
     def test_chained_sub_set(self):
         """set contain subkeys"""
@@ -93,6 +107,20 @@ class StructsTestCase(unittest.TestCase):
         assert self.symbols['root', 'missing']['sub'] == ''
         assert self.symbols['root']['missing', 'sub'] == ''
 
+        missing = self.symbols['root.missing']
+        assert missing['sub'] == ''
+
+        missing = self.symbols['root']['missing']
+        assert missing['sub'] == ''
+
+        missing = self.symbols['root', 'missing']
+        assert missing['sub'] == ''
+
+        root = self.symbols['root']
+        assert root['missing.sub'] == ''
+        assert root['missing']['sub'] == ''
+        assert root['missing', 'sub'] == ''
+
     def test_missing_top_get(self):
         """get missing topkeys"""
 
@@ -102,6 +130,19 @@ class StructsTestCase(unittest.TestCase):
         assert self.symbols['none', 'missing']['sub'] == ''
         assert self.symbols['none']['missing', 'sub'] == ''
 
+        missing = self.symbols['none.missing']
+        assert missing['sub'] == ''
+
+        missing = self.symbols['none']['missing']
+        assert missing['sub'] == ''
+
+        missing = self.symbols['none', 'missing']
+        assert missing['sub'] == ''
+
+        none = self.symbols['none']
+        assert none['missing.sub'] == ''
+        assert none['missing']['sub'] == ''
+        assert none['missing', 'sub'] == ''
 
     def test_strings_sub_get(self):
         """get strings subkeys"""
@@ -120,6 +161,26 @@ class StructsTestCase(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             self.symbols['root']['strings', 'sub']
+
+        strings = self.symbols['root.strings']
+        with self.assertRaises(TypeError):
+            strings['sub']
+
+        strings = self.symbols['root']['strings']
+        with self.assertRaises(TypeError):
+            strings['sub']
+
+        strings = self.symbols['root', 'strings']
+        with self.assertRaises(TypeError):
+            strings['sub']
+
+        root = self.symbols['root']
+        with self.assertRaises(TypeError):
+            root['strings', 'sub']
+        with self.assertRaises(TypeError):
+            root['strings']['sub']
+        with self.assertRaises(TypeError):
+            root['strings', 'sub']
 
 
     def test_strings_sub_set(self):
@@ -140,6 +201,30 @@ class StructsTestCase(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.symbols['root']['strings', 'sub'] = '_'
 
+        strings = self.symbols['root.strings']
+        with self.assertRaises(TypeError):
+            strings['sub'] = '_'
+
+        strings = self.symbols['root']['strings']
+        with self.assertRaises(TypeError):
+            strings['sub'] = '_'
+
+        strings = self.symbols['root', 'strings']
+        with self.assertRaises(TypeError):
+            strings['sub'] = '_'
+
+        root = self.symbols['root']
+        with self.assertRaises(TypeError):
+            root['strings', 'sub'] = '_'
+        with self.assertRaises(TypeError):
+            root['strings']['sub'] = '_'
+        with self.assertRaises(TypeError):
+            root['strings', 'sub'] = '_'
+
+
+    def test_strings_sub_del(self):
+        """del string subkeys"""
+
         with self.assertRaises(TypeError):
             del self.symbols['root.strings.sub']
 
@@ -154,6 +239,26 @@ class StructsTestCase(unittest.TestCase):
 
         with self.assertRaises(TypeError):
             del self.symbols['root']['strings', 'sub']
+
+        strings = self.symbols['root.strings']
+        with self.assertRaises(TypeError):
+            del strings['sub']
+
+        strings = self.symbols['root']['strings']
+        with self.assertRaises(TypeError):
+            del strings['sub']
+
+        strings = self.symbols['root', 'strings']
+        with self.assertRaises(TypeError):
+            del strings['sub']
+
+        root = self.symbols['root']
+        with self.assertRaises(TypeError):
+            del root['strings', 'sub']
+        with self.assertRaises(TypeError):
+            del root['strings']['sub']
+        with self.assertRaises(TypeError):
+            del root['strings', 'sub']
 
 
     def test_symbols_of_data(self):
@@ -294,6 +399,102 @@ class StructsTestCase(unittest.TestCase):
         self.assertNotIn(('sub','top'), self.symbols['root']['present'])
         self.assertNotIn('sub.top', self.symbols['root', 'present'])
         self.assertNotIn(('sub','top'), self.symbols['root', 'present'])
+
+
+    def test_parents_sub_key(self):
+        """parents sub key"""
+
+        root = self.symbols['root']
+
+        present = self.symbols['root']['present']
+
+        assert len(present) == 1
+        assert sorted(present) == sorted(('sub',))
+
+        self.assertNotIn('top', present)
+        self.assertNotIn('present.top', root)
+        self.assertNotIn(('present', 'top'), root)
+
+        missing = self.symbols['root']['missing']
+
+        assert len(missing) == 0
+        assert sorted(missing) == sorted(())
+
+        self.assertNotIn('top', missing)
+        self.assertNotIn('missing.top', root)
+        self.assertNotIn(('missing', 'top'), root)
+
+        assert present['sub'] == '_'
+        assert root['present.sub'] == '_'
+        assert root['present']['sub'] == '_'
+        assert root['present', 'sub'] == '_'
+        assert self.symbols['root', 'present']['sub'] == '_'
+
+        assert len(present) == 1
+        assert sorted(present) == sorted(('sub',))
+
+        self.assertIn('sub', present)
+        self.assertIn('present.sub', root)
+        self.assertIn(('present', 'sub'), root)
+
+        present['new'] = '_'
+        assert present['new'] == '_'
+        assert root['present.new'] == '_'
+        assert root['present']['new'] == '_'
+        assert root['present', 'new'] == '_'
+        assert self.symbols['root', 'present']['new'] == '_'
+
+        assert len(present) == 2
+        assert sorted(present) == sorted(('sub', 'new'))
+
+        self.assertIn('new', present)
+        self.assertIn('present.new', root)
+        self.assertIn(('present', 'new'), root)
+
+        del present['new']
+        assert present['new'] == ''
+        assert root['present.new'] == ''
+        assert root['present']['new'] == ''
+        assert root['present', 'new'] == ''
+        assert self.symbols['root', 'present']['new'] == ''
+
+        assert len(present) == 1
+        assert sorted(present) == sorted(('sub',))
+
+        self.assertNotIn('new', present)
+        self.assertNotIn('present.new', root)
+        self.assertNotIn(('present', 'new'), root)
+
+        missing['new'] = '_'
+        assert missing['new'] == '_'
+        assert root['missing.new'] == '_'
+        assert root['missing']['new'] == '_'
+        assert root['missing', 'new'] == '_'
+        assert self.symbols['root', 'missing']['new'] == '_'
+
+        # ???: missing is symbols proxy and behaves like str
+        # for methods like __len__ / __iter__ / __contains__
+
+        #assert len(missing) == 1
+        #assert sorted(missing) == sorted(('new',))
+
+        #self.assertIn('new', missing)
+        self.assertIn('missing.new', root)
+        self.assertIn(('missing', 'new'), root)
+
+        del missing['new']
+        assert missing['new'] == ''
+        assert root['missing.new'] == ''
+        assert root['missing']['new'] == ''
+        assert root['missing', 'new'] == ''
+        assert self.symbols['root', 'missing']['new'] == ''
+
+        assert len(missing) == 0
+        assert sorted(missing) == sorted(())
+
+        self.assertNotIn('new', missing)
+        self.assertNotIn('missing.new', root)
+        self.assertNotIn(('missing', 'new'), root)
 
 
     def test_symbols_key_str(self):
