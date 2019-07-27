@@ -15,7 +15,7 @@ SHA512 = 6
 
 
 def RunUsernamePasswordInput(header, text, username="", password="", editable=True, hashes=None, banned=None, forced=False, pwdict=None):
-    if (username and not editable) or banned is None:
+    if banned is None:
         banned = []
 
     try:
@@ -37,6 +37,12 @@ def RunUsernamePasswordInput(header, text, username="", password="", editable=Tr
     if password and forced:
         raise RuntimeError("Cannot force if old password specified.")
 
+    if not username and not editable:
+        raise RuntimeError("Cannot be non-editable if no username specified.")
+
+    if banned and not editable:
+        raise RuntimeError("Cannot be non-editable if banned list specified.")
+
     class AccountValidate(object):
         def __init__(self, *args):
             if len(args) != 4:
@@ -56,7 +62,7 @@ def RunUsernamePasswordInput(header, text, username="", password="", editable=Tr
             else:
                 raise ValueError("incorrect password entered")
 
-    username_fixed = "" if not username or editable else "="
+    username_fixed = "" if editable else "="
     if not password:
         username, password, _ = ram.widgets.RunEntry(
             header, text + ValidatePasswordRequirements,
