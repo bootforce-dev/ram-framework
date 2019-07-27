@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import warnings
+
 import syslog
 
 import ram.context
@@ -14,52 +16,96 @@ if __name__ == '__main__':
     params = ram.param()
     config = ram.query()
 
-    if not config['username']:
-        username = params.user
-        password = ""
-        ingroups = " ".join(params.groups.split(","))
-        useshell = params.shell
-        editable = params.edit
-        existing = config['existing'].split() if params.forcenew else []
-        banned = existing + ([] if params.rootok else ["root"])
+    warnings.formatwarning = lambda msg, *_: bytes("%s\n" % msg)
+    warnings.simplefilter('error' if params.strict else 'default', RuntimeWarning)
+
+    if params.forced or params.forcenew:
+        warnings.warn(RuntimeWarning("Parameters `forced` and `forcenew` are obsolete. Considering `wizard` mode instead."))
+        params.wizard = True
+
+    if params.rootok:
+        warnings.warn(RuntimeWarning("Parameter `rootok` is not supported now."))
+
+    if params.edit and not params.wizard:
+        raise SystemExit("Parameter `edit` could only be used in `wizard` mode.")
+
+    if params.wizard and params.delete:
+        raise SystemExit("Parameters `wizard` and `delete` cannot be used same time.")
+
+    admins = config['admins']
+    _found = None
+
+    if params.edit:
+        pass
+    elif params.user:
+        _found = [_ for _ in sorted(admins) if admins[_]['login'] == params.user]
+        _found = _found.pop() if _found else None
+
+        if admins and not _found:
+            warnings.warn(RuntimeWarning("Administrative accounts already exist, but specified new `%s`." % (params.user)))
+    elif admins:
+        _found = [_ for _ in sorted(admins)]
+        _found = _found.pop() if _found else None
+
+        if len(_found) > 1:
+            _admin = admins[_found]
+            warnings.warn(RuntimeWarning("Multiple administrative accounts found. Considering: `%s`." % (_admin['login'])))
     else:
-        username = config['username']
-        password = "" if params.forced else config['password']
-        ingroups = config['ingroups']
-        useshell = config['useshell']
-        editable = False
-        banned = []
+        warnings.warn(RuntimeWarning("Cannot found any administrative account exists. Considering `wizard` mode instead."))
+        params.wizard = True
+        params.edit = True
+
+    if params.edit:
+        exists = config['exists'].split()
+    else:
+        banned = None
+
+    _index = _found or '_%i' % len(admins)
+
+    if params.delete:
+        del admins[_index]
+        ram.store(input=config)
+        raise SystemExit()
+    else:
+        _admin = admins[_index]
+
+    if params.user:
+        _admin['login'] = params.user
+
+    if params.wizard:
+        _admin['passwd'] = ""
+
+    if params.shell:
+        _admin['shell'] = params.shell
+
+    if params.groups:
+        _admin['groups'] += " ".join(params.groups.split(","))
 
     try:
-        username, password = RunUsernamePasswordInput(
+        _admin['login'], _admin['passwd'] = RunUsernamePasswordInput(
             "Enter credentials for the system access",
             (
                 "Specify username and password for the system administrative account.\n"
-                if editable else
-                "Type new password for `%s` system administrative account.\n" % username
+                if params.edit else
+                "Type new password for `%s` system administrative account.\n" % _admin['login']
             ),
-            username=username,
-            password=password,
-            editable=editable,
+            username=_admin['login'],
+            password=_admin['passwd'],
+            editable=params.edit,
             hashes=[SHA512],
             banned=banned,
-            forced=params.forced,
+            forced=params.wizard,
             pwdict=params.dict,
         )
     except RuntimeError as err:
         raise SystemExit(str(err))
 
-    if password:
-        config['username'] = username
-        config['password'] = password
-        config['ingroups'] = ingroups
-        config['useshell'] = useshell
+    if _admin['passwd']:
+        ram.store(input=config)
 
         syslog.openlog("passwd", 0, 10 << 3)
         syslog.syslog("the system administrative account password has been changed.")
         syslog.closelog()
 
-        if not params.forced:
-            ram.widgets.ShowMessage(username, "Password has been changed.")
-
-    ram.store(input=config)
+        if not params.wizard:
+            ram.widgets.ShowMessage(config['login'], "Password has been changed.")

@@ -7,32 +7,49 @@ import ram.symbols
 
 if __name__ == '__main__':
     config = ram.symbols.recv()
+    _dbapi = libuser.admin()
 
-    admin = libuser.admin()
+    for _index in config['admins']:
+        _admin = config['admins'][_index]
 
-    user = admin.lookupUserByName(config['username'])
-    if not user:
-        user = admin.initUser(config['username'])
-        admin.addUser(user)
+        user = _dbapi.lookupUserByName(_admin['login'])
+        if not user:
+            user = _dbapi.initUser(_admin['login'])
+            _dbapi.addUser(user, mkhomedir=True, mkmailspool=True)
 
-    group = admin.lookupGroupByName(config['username'])
-    if not group:
-        group = admin.initGroup(config['username'])
-        admin.addGroup(group)
+        group = _dbapi.lookupGroupByName(_admin['login'])
+        if not group:
+            group = _dbapi.initGroup(_admin['login'])
+            _dbapi.addGroup(group)
 
-    user[libuser.GECOS] = "#"
-    user[libuser.GIDNUMBER] = group[libuser.GIDNUMBER]
-    user[libuser.LOGINSHELL] = config['useshell']
+        user[libuser.GECOS] = "#"
+        user[libuser.GIDNUMBER] = group[libuser.GIDNUMBER]
+        user[libuser.LOGINSHELL] = _admin['shell']
 
-    for groupname in config['ingroups'].split():
-        if groupname:
-            group = admin.lookupGroupByName(groupname)
+        for groupname in config['groups'].split():
+            group = _dbapi.lookupGroupByName(groupname)
             if not group:
-                group = admin.initGroup(groupname)
-                admin.addGroup(group)
-            group.add(libuser.MEMBERNAME, config['username'])
-            admin.modifyGroup(group)
+                group = _dbapi.initGroup(groupname)
+                _dbapi.addGroup(group)
+            group.add(libuser.MEMBERNAME, _admin['login'])
+            _dbapi.modifyGroup(group)
 
-    admin.modifyUser(user)
+        _dbapi.modifyUser(user)
 
-    admin.setpassUser(user, config['password'], is_crypted=True)
+        _dbapi.setpassUser(user, _admin['passwd'], is_crypted=True)
+
+    admins = [config['admins'][_]['login'] for _ in config['admins']]
+
+    for user in _dbapi.enumerateUsersFull():
+        if not user[libuser.GECOS][0] == "#":
+            continue
+
+        if user[libuser.USERNAME][0] in admins:
+            continue
+
+        group = _dbapi.lookupGroupByName(user[libuser.USERNAME][0])
+        if group:
+            _dbapi.deleteGroup(group)
+
+        if user:
+            _dbapi.deleteUser(user, rmhomedir=True, rmmailspool=True)
