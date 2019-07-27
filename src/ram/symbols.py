@@ -68,12 +68,11 @@ class Symbols(MutableMapping, dict):
 
     def __getitem__(self, keypath, private=False, keytest=False):
         if not private:
-            parents, keypath = self._keyprepare(keypath, parents=False)
+            parents, keypath = self._keyprepare(keypath, parents=True)
+            return parents.__getitem__(keypath, private=True, keytest=keytest)
 
         keyhead = keypath.pop(0)
         symbols = dict.get(self, keyhead, Symbols(self, keyhead))
-        if not symbols:
-            symbols = SymbolsProxy(symbols)
 
         if keypath:
             if not isinstance(symbols, basestring):
@@ -82,6 +81,8 @@ class Symbols(MutableMapping, dict):
                 return symbols[keypath]
             else:
                 return ""
+        elif not keytest and not symbols:
+            return SymbolsProxy(symbols)
         else:
             return symbols
 
