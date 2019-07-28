@@ -4,7 +4,7 @@ import crypt
 
 import ram.widgets
 
-from utils import ValidateUsername, ValidateSamePassword
+from utils import ValidateUsername, ValidateSamePassword, ValidateDictPath
 from utils import ValidatePasswordRequirements, GenerateSalt
 
 
@@ -15,7 +15,7 @@ SHA512 = 6
 
 
 def RunUsernamePasswordInput(header, text, username="", password="", editable=True, hashes=None, banned=None, forced=False, pwdict=None):
-    if (username and not editable) or banned is None:
+    if banned is None:
         banned = []
 
     try:
@@ -23,11 +23,25 @@ def RunUsernamePasswordInput(header, text, username="", password="", editable=Tr
     except ValueError as err:
         raise RuntimeError("username: " + str(err))
 
+    try:
+        dictpath = ValidateDictPath(pwdict or None)
+    except ValueError as err:
+        raise RuntimeError("Cannot use dict: %s" % pwdict)
+
     if not hashes:
         raise RuntimeError("At least one hash algorithm should be specified.")
 
     if password and not password.startswith("$"):
         raise RuntimeError("Old password is not encrypted with the given hash.")
+
+    if password and forced:
+        raise RuntimeError("Cannot force if old password specified.")
+
+    if not username and not editable:
+        raise RuntimeError("Cannot be non-editable if no username specified.")
+
+    if banned and not editable:
+        raise RuntimeError("Cannot be non-editable if banned list specified.")
 
     class AccountValidate(object):
         def __init__(self, *args):
@@ -39,7 +53,7 @@ def RunUsernamePasswordInput(header, text, username="", password="", editable=Tr
             return ValidateUsername(value, banned=banned)
 
         def newpass_check(self, value):
-            return ValidateSamePassword(self.newpass, self.confirm, self.username, pwdict=pwdict)
+            return ValidateSamePassword(self.newpass, self.confirm, self.username, dictpath)
 
         def oldpass_check(self, value, password=password):
             prefix, sep, hashed = password.rpartition("$")
@@ -48,7 +62,7 @@ def RunUsernamePasswordInput(header, text, username="", password="", editable=Tr
             else:
                 raise ValueError("incorrect password entered")
 
-    username_fixed = "" if not username or editable else "="
+    username_fixed = "" if editable else "="
     if not password:
         username, password, _ = ram.widgets.RunEntry(
             header, text + ValidatePasswordRequirements,

@@ -1,0 +1,56 @@
+#!/usr/bin/python
+
+import libuser
+
+import ram.symbols
+
+
+if __name__ == '__main__':
+    config = ram.symbols()
+
+    admin = libuser.admin()
+
+    _users = admin.enumerateUsersFull()
+    _chars = len(str(len(_users)))
+
+    for i, user in enumerate(_users):
+        _idx = '_%.*i' % (_chars, i)
+
+        config['users'][_idx]['uid'] = str(user[libuser.UIDNUMBER][0])
+        config['users'][_idx]['gid'] = str(user[libuser.GIDNUMBER][0])
+        config['users'][_idx]['dir'] = user[libuser.HOMEDIRECTORY][0]
+        config['users'][_idx]['login'] = user[libuser.USERNAME][0]
+        config['users'][_idx]['shell'] = user[libuser.LOGINSHELL][0]
+        config['users'][_idx]['gecos'] = user[libuser.GECOS][0]
+
+        passwd = ([''] + user.get(libuser.USERPASSWORD)).pop()
+        shadow = ([''] + user.get(libuser.SHADOWPASSWORD)).pop()
+
+        config['users'][_idx]['passwd'] = (
+            passwd if passwd and passwd[0] == "$" else
+            shadow if shadow and shadow[0] == "$" else
+            ""
+        )
+
+        config['users'][_idx]['groups'] = " ".join(_ for _ in admin.enumerateGroupsByUser(user[libuser.USERNAME][0]))
+
+    _groups = admin.enumerateGroupsFull()
+    _chars = len(str(len(_groups)))
+
+    for i, group in enumerate(_groups):
+        _idx = '_%.*i' % (_chars, i)
+
+        config['groups'][_idx]['gid'] = str(group[libuser.GIDNUMBER][0])
+        config['groups'][_idx]['group'] = group[libuser.GROUPNAME][0]
+
+        passwd = ([''] + user.get(libuser.GROUPPASSWORD)).pop()
+        shadow = ([''] + user.get(libuser.SHADOWPASSWORD)).pop()
+
+        config['groups'][_idx]['passwd'] = (
+            passwd if passwd and passwd[0] == "$" else
+            shadow if shadow and shadow[0] == "$" else
+            ""
+        )
+        config['groups'][_idx]['users'] = " ".join(_ for _ in admin.enumerateUsersByGroup(group[libuser.GROUPNAME][0]))
+
+    ram.symbols.send(config)
