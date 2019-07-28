@@ -17,4 +17,5 @@ if __name__ == '__main__':
     ram.widgets.ShowMessage(
         params.header,
         text,
+        params.submit,
     )
