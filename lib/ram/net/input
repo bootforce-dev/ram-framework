@@ -8,13 +8,25 @@ with ram.context(__name__):
     from wiz.entry import UnitEntry
 
 if __name__ == '__main__':
-    ram.widgets.RunMenu(
-        "Select action",
-        [
-            ("Interface configuration ...", UnitEntry('net.ifconfig', apply=False)),
-            ("", 0),
-            ("Routing configuration ...", UnitEntry('net.routing', apply=False)),
-            ("Change the system hostname ...", UnitEntry('net.hostname', apply=False)),
-            ("DNS resolver configuration ...", UnitEntry('net.resolver', apply=False)),
-        ]
-    )
+    params = ram.param()
+
+    if params.wizard:
+        ram.widgets.RunList(
+            [
+                UnitEntry('net.hostname', 'forced', 'erased', apply=False),
+                UnitEntry('net.ifconfig', 'wizard', apply=False),
+                UnitEntry('net.routing', 'wizard', apply=False),
+                UnitEntry('net.resolver', 'wizard', apply=False),
+            ]
+        )
+    else:
+        ram.widgets.RunMenu(
+            "Select action",
+            [
+                ("Interface configuration ...", UnitEntry('net.ifconfig', apply=False)),
+                ("", 0),
+                ("Routing configuration ...", UnitEntry('net.routing', apply=False)),
+                ("Change the system hostname ...", UnitEntry('net.hostname', apply=False)),
+                ("DNS resolver configuration ...", UnitEntry('net.resolver', apply=False)),
+            ]
+        )
