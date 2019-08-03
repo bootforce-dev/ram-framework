@@ -8,19 +8,18 @@ with ram.context(__name__):
     from net.utils import ValidateHostname
 
 
-# Maximum length of hostname to set is defined via sysconf HOST_NAME_MAX
-# but this identifier is not available via python's os.sysconf interface.
-def __ValidateHostname(value):
-    return ValidateHostname(value, length=64)
-
-
 if __name__ == '__main__':
     params = ram.param()
     config = ram.query()
 
+    # Maximum length of hostname to set is defined via sysconf HOST_NAME_MAX
+    # but this identifier is not available via python's os.sysconf interface.
+    def __ValidateHostname(value):
+        return ValidateHostname(value, length=64, only_isfqdn=params.fqdn)
+
     config['hostname'], = ram.widgets.RunEntry(
         "Hostname",
-        "Specify hostname for the machine.",
+        "Specify %s for the machine" % ("fully qualified domain name (FQDN)" if params.fqdn else "hostname"),
         [("Hostname", config['hostname'], __ValidateHostname)],
         allowCancel=not params.forced,
         supplySaved=not params.erased,

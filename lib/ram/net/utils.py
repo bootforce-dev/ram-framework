@@ -9,17 +9,19 @@ with ram.context(__name__):
     from wiz.utils import ValidateNonEmpty, ValidateIntRange
 
 
-def ValidateHostname(value, length=None, allow_empty=False):
+def ValidateHostname(value, length=None, allow_empty=False, only_isfqdn=False):
     if not value:
         return ValidateNonEmpty(value) if not allow_empty else ""
     value = value.decode('utf8').encode('idna')
     labels = value.split(".")
     if all(label.isdigit() for label in labels):
         raise ValueError("%s is assumed to be an IPv4 address" % value)
-    isfqdn = not labels[-1]
-    if isfqdn:
+    isroot = not labels[-1]
+    if isroot:
         labels = labels[:-1]
-    length = length or (254 if isfqdn else 253)
+    elif only_isfqdn and len(labels) <= 1:
+        raise ValueError("%s is not FQDN" % value)
+    length = length or (254 if isroot else 253)
     if len(value) > length:
         raise ValueError("value too long")
     for label in labels:
