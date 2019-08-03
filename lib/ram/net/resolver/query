@@ -7,7 +7,7 @@ if __name__ == '__main__':
     config = ram.query('net.network')
 
     ifaces = [
-        ifname for ifname in config['ifconfig'].keys()
+        ifname for ifname in config['ifconfig']
         if config['ifconfig'][ifname]['enabled']
         and config['ifconfig'][ifname]['usedhcp']
     ]

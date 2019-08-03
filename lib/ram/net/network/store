@@ -14,7 +14,7 @@ if __name__ == '__main__':
     netcfg = QueryNetworkConfiguration()
 
     # ifconfig
-    for ifname in config['ifconfig'].keys():
+    for ifname in config['ifconfig']:
         if ifname in netcfg:
             continue
         if config['ifconfig'][ifname]['defconf']:
