@@ -110,6 +110,7 @@ def DelNetworkIface(config, ifname, device=None):
         "Interface `%s` is configured but not found.\n\n"
         "Would you like to delete it permanently?" % ifname
     ):
+        config[ifname]['enabled'] = ""
         config[ifname]['defconf'] = ifname
     else:
         EditNetworkIface(config, ifname)
@@ -127,8 +128,6 @@ def ActNetworkIface(config, ifname, device=None):
 if __name__ == '__main__':
     params = ram.param()
     config = ram.query()
-
-    ifaces = config.keys()
 
     if not params.device:
         def __FormatIfEntry(ifname):
@@ -151,11 +150,11 @@ if __name__ == '__main__':
             if not config['defconf']:
                 config[ifname]['enabled'] = "" if config[ifname]['enabled'] else ifname
 
-        while ifaces:
+        while config:
             RunDictIndex(
                 "Select Action - Interfaces",
                 "", "",
-                values_fn=lambda: sorted(ifaces),
+                values_fn=lambda: sorted(config),
                 format_fn=__FormatIfEntry,
                 filter_fn=__FilterIfEntry,
                 modify_fn=__ModifyIfEntry,
@@ -164,7 +163,7 @@ if __name__ == '__main__':
             )
 
             if not params.wizard or any(
-                config[ifname]['enabled'] for ifname in ifaces
+                config[ifname]['enabled'] for ifname in config
             ) or ram.widgets.AskViaButtons(
                 "Network unconfigured",
                 "No enabled network interfaces found!\n\n"
@@ -185,7 +184,7 @@ if __name__ == '__main__':
                     "No present network interfaces found!\n"
                 )
 
-    elif params.device in ifaces:
+    elif params.device in config:
         ActNetworkIface(config, params.device, params.device)
     elif params.device is not None:
         raise SystemExit("No suitable device found on the machine.")
