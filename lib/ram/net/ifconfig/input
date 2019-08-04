@@ -8,6 +8,9 @@ with ram.context(__name__):
     from wiz.entry import RunDictIndex
     from net.utils import ValidateEmptyOrIpV4
 
+    from ..resolver.entry import ModifyPeerDnsDevice
+    from ..resolver.entry import EditIfaceDnsServers
+
 
 def EditIfaceIpAddressAndNetwork(config, ifname):
     ifconf = config['ifconfig'][ifname]
@@ -35,6 +38,7 @@ def EditIfaceIpAddressAndNetwork(config, ifname):
 
 def EditNetworkIface(config, ifname):
     ifconf = config['ifconfig'][ifname]
+    backup_peerdns = config['resolver']['peerdns']
 
     def __SwitchIfaceEnabled():
         ifconf['enabled'] = "" if ifconf['enabled'] else "_"
@@ -71,6 +75,14 @@ def EditNetworkIface(config, ifname):
         ifconf['defconf'] = "_"
         return ifname
 
+    def __SwitchIfacePeerDns():
+        if not config['resolver']['peerdns'] == ifname:
+            ModifyPeerDnsDevice(config, ifname)
+        elif backup_peerdns and backup_peerdns != ifname:
+            ModifyPeerDnsDevice(config, backup_peerdns)
+        else:
+            EditIfaceDnsServers(config)
+
     def __MkEditNetworkIface():
         devname = ifconf['hw_addr'] or "*** NOT FOUND ***"
         enabled = "yes" if ifconf['enabled'] else "no"
@@ -78,15 +90,19 @@ def EditNetworkIface(config, ifname):
         ip_addr = "dhcp" if ifconf['usedhcp'] else ifconf['ip_addr']
         netmask = "dhcp" if ifconf['usedhcp'] else ifconf['netmask']
 
+        peerdns = "yes" if config['resolver']['peerdns'] == ifname else "no"
+
         return [
             ("%-16s %-16s" % ("HW addr:", devname), 0),
             ("", 1),
             ("%-16s %s" % ("Enabled:", enabled), __SwitchIfaceEnabled),
             ("%-16s %s" % ("Use DHCP:", usedhcp), __SwitchIfaceUseDhcp),
             ("", 2),
+            ("%-16s %s" % ("  Use DNS:", peerdns), __SwitchIfacePeerDns) if ifconf['usedhcp'] else ("", 21),
+            ("", 3),
             ("%-16s %-15s" % ("IP addr:", ip_addr), __EditIfaceIpAddress),
             ("%-16s %-15s" % ("Netmask:", netmask), __EditIfaceIpNetwork),
-            ("", 3),
+            ("", 4),
             ("Reset configuration ..." if ifconf['hw_addr'] else "Delete configuration ...", __SwitchIfaceDefconf),
         ]
 
