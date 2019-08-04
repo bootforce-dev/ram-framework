@@ -105,6 +105,13 @@ class NetworkConfiguration(object):
             self.ifcfgs[ifname]['PERSISTENT_DHCLIENT'] = 'yes'
         self.ifcfgs[ifname]['BOOTPROTO'] = bootproto
 
+    def GetIfaceUseDhcp(self, ifname):
+        return bool(self.GetIfaceBootProto(ifname))
+
+    @_modify_settings
+    def SetIfaceUseDhcp(self, ifname, usedhcp):
+        self.SetIfaceBootProto(ifname, "dhcp" if usedhcp else "")
+
     def GetIfaceEnabled(self, ifname):
         if self.IsLoopback(ifname):
             return True

@@ -32,7 +32,7 @@ if __name__ == '__main__':
         if netcfg.IsLoopback(ifname):
             continue
         netcfg.SetIfaceEnabled(ifname, config['ifconfig'][ifname]['enabled'])
-        netcfg.SetIfaceBootProto(ifname, config['ifconfig'][ifname]['usedhcp'])
+        netcfg.SetIfaceUseDhcp(ifname, config['ifconfig'][ifname]['usedhcp'])
         netcfg.SetIfaceIpAddress(ifname, config['ifconfig'][ifname]['ip_addr'])
         netcfg.SetIfaceIpNetmask(ifname, config['ifconfig'][ifname]['netmask'])
         netcfg.SetIfaceGwIgnored(ifname, config['ifconfig'][ifname]['ignored'])

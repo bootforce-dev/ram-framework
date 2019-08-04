@@ -37,7 +37,7 @@ if __name__ == '__main__':
     for ifname in sw_ifaces:
         config['ifconfig'][ifname]['devname'] = netcfg.GetIfaceDevName(ifname)
         config['ifconfig'][ifname]['enabled'] = "_" if netcfg.GetIfaceEnabled(ifname) else ""
-        config['ifconfig'][ifname]['usedhcp'] = "_" if netcfg.GetIfaceBootProto(ifname) else ""
+        config['ifconfig'][ifname]['usedhcp'] = "_" if netcfg.GetIfaceUseDhcp(ifname) else ""
         config['ifconfig'][ifname]['ip_addr'] = netcfg.GetIfaceIpAddress(ifname)
         config['ifconfig'][ifname]['netmask'] = netcfg.GetIfaceIpNetmask(ifname)
         config['ifconfig'][ifname]['defconf'] = ""
