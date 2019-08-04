@@ -10,7 +10,9 @@ with ram.context(__name__):
 
 
 def EditIfaceIpAddressAndNetwork(config, ifname):
-    if config[ifname]['usedhcp'] and not ram.widgets.AskViaButtons(
+    ifconf = config['ifconfig'][ifname]
+
+    if ifconf['usedhcp'] and not ram.widgets.AskViaButtons(
         "Use static configuration?",
         "Interface `%s` is configured to obtain network parameters via DHCP protocol.\n\n"
         "Would you like to use static configuration?\n" % ifname
@@ -21,26 +23,27 @@ def EditIfaceIpAddressAndNetwork(config, ifname):
         "Interface IP configuration",
         "Specify IP address and netmask for the interface `%s`." % ifname,
         [
-            ("Address", config[ifname]['ip_addr'], ValidateEmptyOrIpV4),
-            ("Netmask", config[ifname]['netmask'], ValidateEmptyOrIpV4),
+            ("Address", ifconf['ip_addr'], ValidateEmptyOrIpV4),
+            ("Netmask", ifconf['netmask'], ValidateEmptyOrIpV4),
         ],
     )
 
-    config[ifname]['usedhcp'] = ""
-    config[ifname]['ip_addr'] = ip_addr
-    config[ifname]['netmask'] = netmask
+    ifconf['usedhcp'] = ""
+    ifconf['ip_addr'] = ip_addr
+    ifconf['netmask'] = netmask
 
 
 def EditNetworkIface(config, ifname):
+    ifconf = config['ifconfig'][ifname]
 
     def __SwitchIfaceEnabled():
-        config[ifname]['enabled'] = "" if config[ifname]['enabled'] else ifname
+        ifconf['enabled'] = "" if ifconf['enabled'] else "_"
 
     def __SwitchIfaceUseDhcp():
-        if not config[ifname]['usedhcp']:
-            config[ifname]['usedhcp'] = "dhcp"
-        elif config[ifname]['ip_addr'] and config[ifname]['netmask']:
-            config[ifname]['usedhcp'] = ""
+        if not ifconf['usedhcp']:
+            ifconf['usedhcp'] = "_"
+        elif ifconf['ip_addr'] and ifconf['netmask']:
+            ifconf['usedhcp'] = ""
         else:
             EditIfaceIpAddressAndNetwork(config, ifname)
 
@@ -51,7 +54,7 @@ def EditNetworkIface(config, ifname):
         EditIfaceIpAddressAndNetwork(config, ifname)
 
     def __SwitchIfaceDefconf():
-        if config[ifname]['hw_addr']:
+        if ifconf['hw_addr']:
             if not ram.widgets.AskViaButtons(
                 "Reset interface `%s`?" % ifname,
                 "Would you like to reset interface `%s`?" % ifname,
@@ -64,16 +67,16 @@ def EditNetworkIface(config, ifname):
             ):
                 return
 
-        config[ifname]['enabled'] = ""
-        config[ifname]['defconf'] = ifname
+        ifconf['enabled'] = ""
+        ifconf['defconf'] = "_"
         return ifname
 
     def __MkEditNetworkIface():
-        devname = config[ifname]['hw_addr'] or "*** NOT FOUND ***"
-        enabled = "yes" if config[ifname]['enabled'] else "no"
-        usedhcp = "yes" if config[ifname]['usedhcp'] else "no"
-        ip_addr = "dhcp" if config[ifname]['usedhcp'] else config[ifname]['ip_addr']
-        netmask = "dhcp" if config[ifname]['usedhcp'] else config[ifname]['netmask']
+        devname = ifconf['hw_addr'] or "*** NOT FOUND ***"
+        enabled = "yes" if ifconf['enabled'] else "no"
+        usedhcp = "yes" if ifconf['usedhcp'] else "no"
+        ip_addr = "dhcp" if ifconf['usedhcp'] else ifconf['ip_addr']
+        netmask = "dhcp" if ifconf['usedhcp'] else ifconf['netmask']
 
         return [
             ("%-16s %-16s" % ("HW addr:", devname), 0),
@@ -84,42 +87,48 @@ def EditNetworkIface(config, ifname):
             ("%-16s %-15s" % ("IP addr:", ip_addr), __EditIfaceIpAddress),
             ("%-16s %-15s" % ("Netmask:", netmask), __EditIfaceIpNetwork),
             ("", 3),
-            ("Reset configuration ..." if config[ifname]['hw_addr'] else "Delete configuration ...", __SwitchIfaceDefconf),
+            ("Reset configuration ..." if ifconf['hw_addr'] else "Delete configuration ...", __SwitchIfaceDefconf),
         ]
 
     return ram.widgets.RunMenu("Select Action - %s" % ifname, __MkEditNetworkIface)
 
 
 def AddNetworkIface(config, ifname, device=None):
+    ifconf = config['ifconfig'][ifname]
+
     if ram.widgets.AskViaButtons(
         "Unconfigured interface `%s`" % ifname,
         "Interface `%s` is found but not configured.\n\n"
         "Would you like to initialize it now?" % ifname
     ):
-        config[ifname]['defconf'] = ""
-        config[ifname]['enabled'] = ifname
-        config[ifname]['usedhcp'] = "dhcp"
+        ifconf['defconf'] = ""
+        ifconf['enabled'] = "_"
+        ifconf['usedhcp'] = "_"
 
         if device:
             EditNetworkIface(config, ifname)
 
 
 def DelNetworkIface(config, ifname, device=None):
+    ifconf = config['ifconfig'][ifname]
+
     if not device and ram.widgets.AskViaButtons(
         "Missing interface `%s`" % ifname,
         "Interface `%s` is configured but not found.\n\n"
         "Would you like to delete it permanently?" % ifname
     ):
-        config[ifname]['enabled'] = ""
-        config[ifname]['defconf'] = ifname
+        ifconf['enabled'] = ""
+        ifconf['defconf'] = "_"
     else:
         EditNetworkIface(config, ifname)
 
 
 def ActNetworkIface(config, ifname, device=None):
-    if not config[ifname]['hw_addr']:
+    ifconf = config['ifconfig'][ifname]
+
+    if not ifconf['hw_addr']:
         DelNetworkIface(config, ifname, device)
-    elif config[ifname]['defconf']:
+    elif ifconf['defconf']:
         AddNetworkIface(config, ifname, device)
     else:
         EditNetworkIface(config, ifname)
@@ -127,34 +136,40 @@ def ActNetworkIface(config, ifname, device=None):
 
 if __name__ == '__main__':
     params = ram.param()
-    config = ram.query()
+    config = ram.query('net.network')
 
     if not params.device:
         def __FormatIfEntry(ifname):
-            if config[ifname]['hw_addr'] and config[ifname]['defconf']:
+            ifconf = config['ifconfig'][ifname]
+
+            if ifconf['hw_addr'] and ifconf['defconf']:
                 status = " new ... "
             else:
-                status = "<  %03s  >" % ("on" if config[ifname]['enabled'] else "off")
+                status = "<  %03s  >" % ("on" if ifconf['enabled'] else "off")
 
             return "%-6s %-18s: %-9s" % (
-                ifname, config[ifname]['hw_addr'] or "*** NOT FOUND ***", status
+                ifname, ifconf['hw_addr'] or "*** NOT FOUND ***", status
             )
 
         def __FilterIfEntry(ifname):
-            return config[ifname]['hw_addr'] or not config[ifname]['defconf']
+            ifconf = config['ifconfig'][ifname]
+
+            return ifconf['hw_addr'] or not ifconf['defconf']
 
         def __ModifyIfEntry(ifname):
             ActNetworkIface(config, ifname)
 
         def __SwitchIfEntry(ifname):
-            if not config['defconf']:
-                config[ifname]['enabled'] = "" if config[ifname]['enabled'] else ifname
+            ifconf = config['ifconfig'][ifname]
+
+            if not ifconf['defconf']:
+                ifconf['enabled'] = "" if ifconf['enabled'] else "_"
 
         while config:
             RunDictIndex(
                 "Select Action - Interfaces",
                 "", "",
-                values_fn=lambda: sorted(config),
+                values_fn=lambda: sorted(config['ifconfig']),
                 format_fn=__FormatIfEntry,
                 filter_fn=__FilterIfEntry,
                 modify_fn=__ModifyIfEntry,
@@ -163,7 +178,7 @@ if __name__ == '__main__':
             )
 
             if not params.wizard or any(
-                config[ifname]['enabled'] for ifname in config
+                config['ifconfig'][_]['enabled'] for _ in config['ifconfig']
             ) or ram.widgets.AskViaButtons(
                 "Network unconfigured",
                 "No enabled network interfaces found!\n\n"
@@ -184,9 +199,9 @@ if __name__ == '__main__':
                     "No present network interfaces found!\n"
                 )
 
-    elif params.device in config:
+    elif params.device in config['ifconfig']:
         ActNetworkIface(config, params.device, params.device)
     elif params.device is not None:
         raise SystemExit("No suitable device found on the machine.")
 
-    ram.store(input=config)
+    ram.store('net.network', input=config)

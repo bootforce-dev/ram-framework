@@ -5,22 +5,23 @@ import ram.widgets
 
 
 with ram.context(__name__):
-    from net.utils import ValidateEmptyOrIpV4, ValidateIpV4
+    from ..utils import ValidateEmptyOrIpV4, ValidateIpV4
+    from ..network.utils import ListEnabledDevices
 
 
 def SwitchGatewayDevice(config, delta):
-    ifaces = config['ifaces'].split()
-    current = config['default'] if config['default'] else "no"
+    ifaces = ListEnabledDevices(config['ifconfig'])
+    current = config['routing']['default'] or "no"
     options = ["no"] + ifaces[:]
 
     ifname = options[(options.index(current) + delta) % len(options)]
 
-    config['default'] = ifname if ifname in ifaces else ""
+    config['routing']['default'] = ifname if ifname in ifaces else ""
 
 
 def SelectGatewayDevice(config, ensure=False):
-    ifaces = config['ifaces'].split()
-    current = config['default'] if config['default'] else "no"
+    ifaces = ListEnabledDevices(config['ifconfig'])
+    current = config['routing']['default'] or "no"
     options = ["no"] + ifaces[:]
 
     if current not in options:
@@ -39,29 +40,29 @@ def SelectGatewayDevice(config, ensure=False):
     if ifname == current:
         return
 
-    config['default'] = ifname if ifname in ifaces else ""
+    config['routing']['default'] = ifname if ifname in ifaces else ""
 
 
-def EditGatewayAddress(config):
-    ifname = config['default']
+def EditGatewayAddress(config, ifname):
+    ifconf = config['ifconfig'][ifname]
 
-    if config[ifname]['usedhcp'] and ram.widgets.AskViaButtons(
+    if ifconf['usedhcp'] and ram.widgets.AskViaButtons(
         "Use static configuration?",
         "Interface `%s` is configured to obtain gateway address via DHCP protocol.\n\n"
         "Would you like to use static gateway address?\n" % ifname,
         "Continue with DHCP", "Set gateway ..."
     ):
-        config[ifname]['ignored'] = "_"
+        ifconf['ignored'] = "_"
     else:
         gateway, = ram.widgets.RunEntry(
             "Interface gateway configuration",
             "Specify IP address of the gateway for the interface `%s`." % ifname,
             [
-                ("Gateway", config[ifname]['gateway'], ValidateEmptyOrIpV4),
+                ("Gateway", ifconf['gateway'], ValidateEmptyOrIpV4),
             ],
         )
-        config[ifname]['gateway'] = gateway
-        config[ifname]['ignored'] = ""
+        ifconf['gateway'] = gateway
+        ifconf['ignored'] = ""
 
 
 def RoutesConfigurationMenu(config, wizard):
@@ -75,21 +76,22 @@ def RoutesConfigurationMenu(config, wizard):
             SwitchGatewayDevice(config, -1)
 
     def __EditGatewayAddress(action):
-        if not config['default']:
+        if not config['routing']['default']:
             SelectGatewayDevice(config)
-        if config['default']:
-            EditGatewayAddress(config)
+        if config['routing']['default']:
+            EditGatewayAddress(config, config['routing']['default'])
 
     def __MkRoutesConfigurationMenu():
-        default = config['default']
-        usedhcp = config[default]['usedhcp'] if default else ""
-        ignored = config[default]['ignored'] if default else ""
-        gateway = config[default]['gateway'] if default else ""
+        default = config['routing']['default']
+
+        usedhcp = config['ifconfig'][default]['usedhcp'] if default else ""
+        ignored = config['ifconfig'][default]['ignored'] if default else ""
+        gateway = config['ifconfig'][default]['gateway'] if default else ""
 
         if usedhcp and (ignored or not gateway):
             gateway = "dhcp"
 
-        default = config['default'] if default else "no"
+        default = default if default else "no"
 
         return [
             ("%-16s" % ("Default route:"), 0),
@@ -109,8 +111,8 @@ def RoutesConfigurationMenu(config, wizard):
 
 
 def RemoveGatewayDevice(config):
-    ifaces = config['ifaces'].split()
-    current = config['default']
+    ifaces = ListEnabledDevices(config['ifconfig'])
+    current = config['routing']['default']
 
     if current in ifaces and not ram.widgets.AskViaButtons(
         "Remove device to use as default gateway?",
@@ -119,12 +121,12 @@ def RemoveGatewayDevice(config):
     ):
         return
 
-    config['default'] = ""
+    config['routing']['default'] = ""
 
 
 def ModifyGatewayDevice(config, ifname):
-    ifaces = config['ifaces'].split()
-    current = config['default']
+    ifaces = ListEnabledDevices(config['ifconfig'])
+    current = config['routing']['default']
 
     if not ifname in ifaces:
         return ram.widgets.ShowError(
@@ -151,5 +153,5 @@ def ModifyGatewayDevice(config, ifname):
     ):
         return
 
-    config['default'] = ifname
-    EditGatewayAddress(config)
+    config['routing']['default'] = ifname
+    EditGatewayAddress(config, config['routing']['default'])

@@ -10,7 +10,7 @@ with ram.context(__name__):
 
 
 if __name__ == '__main__':
-    config = ram.query()
+    config = ram.query('net.network')
     params = ram.param()
 
     if not params.device:
@@ -20,4 +20,4 @@ if __name__ == '__main__':
     elif params.device:
         ModifyPeerDnsDevice(config, params.device)
 
-    ram.store(input=config)
+    ram.store('net.network', input=config)
