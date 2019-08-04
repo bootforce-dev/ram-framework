@@ -26,7 +26,7 @@ if __name__ == '__main__':
     for ifname in hw_ifaces:
         config['ifconfig'][ifname]['devname'] = ifname
         config['ifconfig'][ifname]['enabled'] = ""
-        config['ifconfig'][ifname]['defconf'] = ifname
+        config['ifconfig'][ifname]['defconf'] = "_"
         config['ifconfig'][ifname]['hw_addr'] = GetHwIfaceAddr(ifname)
         config['ifconfig'][ifname]['ip_used'] = GetHwIfaceIpAddress(ifname)
         config['ifconfig'][ifname]['netmask_used'] = GetHwIfaceIpNetmask(ifname)
@@ -36,12 +36,12 @@ if __name__ == '__main__':
 
     for ifname in sw_ifaces:
         config['ifconfig'][ifname]['devname'] = netcfg.GetIfaceDevName(ifname)
-        config['ifconfig'][ifname]['enabled'] = ifname if netcfg.GetIfaceEnabled(ifname) else ""
-        config['ifconfig'][ifname]['usedhcp'] = "dhcp" if netcfg.GetIfaceBootProto(ifname) else ""
+        config['ifconfig'][ifname]['enabled'] = "_" if netcfg.GetIfaceEnabled(ifname) else ""
+        config['ifconfig'][ifname]['usedhcp'] = "_" if netcfg.GetIfaceBootProto(ifname) else ""
         config['ifconfig'][ifname]['ip_addr'] = netcfg.GetIfaceIpAddress(ifname)
         config['ifconfig'][ifname]['netmask'] = netcfg.GetIfaceIpNetmask(ifname)
         config['ifconfig'][ifname]['defconf'] = ""
-        config['ifconfig'][ifname]['ignored'] = "dhcp" if netcfg.GetIfaceGwIgnored(ifname) else ""
+        config['ifconfig'][ifname]['ignored'] = "_" if netcfg.GetIfaceGwIgnored(ifname) else ""
         config['ifconfig'][ifname]['gateway'] = netcfg.GetIfaceIpGateway(ifname)
 
     # routing
