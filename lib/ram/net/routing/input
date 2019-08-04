@@ -42,13 +42,16 @@ def SelectGatewayDevice(config, ensure=False):
     config['default'] = ifname if ifname in ifaces else ""
 
 
-def EditGatewayAddress(config, ifname):
-    if config[ifname]['usedhcp'] and not ram.widgets.AskViaButtons(
+def EditGatewayAddress(config):
+    ifname = config['default']
+
+    if config[ifname]['usedhcp'] and ram.widgets.AskViaButtons(
         "Use static configuration?",
         "Interface `%s` is configured to obtain gateway address via DHCP protocol.\n\n"
-        "Would you like to use static configuration?\n" % ifname
+        "Would you like to use static gateway address?\n" % ifname,
+        "Continue with DHCP", "Set gateway ..."
     ):
-        config[ifname]['ignored'] = "dhcp"
+        config[ifname]['ignored'] = "_"
     else:
         gateway, = ram.widgets.RunEntry(
             "Interface gateway configuration",
@@ -173,8 +176,8 @@ def RoutesConfigurationMenu(config, wizard):
     def __EditGatewayAddress(action):
         if not config['default']:
             SelectGatewayDevice(config)
-        else:
-            EditGatewayAddress(config, config['default'])
+        if config['default']:
+            EditGatewayAddress(config)
 
     def __StaticRoutesMenu():
         StaticRoutesMenu(config)
@@ -209,19 +212,62 @@ def RoutesConfigurationMenu(config, wizard):
     )
 
 
+def RemoveGatewayDevice(config):
+    ifaces = config['ifaces'].split()
+    current = config['default']
+
+    if current in ifaces and not ram.widgets.AskViaButtons(
+        "Remove device to use as default gateway?",
+        "Current default route interface:\n\n\t%s\n\n"
+        "Would you like to reset default route interface?" % current
+    ):
+        return
+
+    config['default'] = ""
+
+
+def ModifyGatewayDevice(config, ifname):
+    ifaces = config['ifaces'].split()
+    current = config['default']
+
+    if not ifname in ifaces:
+        return ram.widgets.ShowError(
+            ifname,
+            "No suitable device found on the machine.",
+        )
+
+    if current == ifname:
+        return
+
+    if not current and not ram.widgets.AskViaButtons(
+        "Change device to use as default gateway?",
+        "Current default route interface is not set.\n\n"
+        "Would you like to set default route interface:\n\n\t%s\n\n?" % ifname
+    ):
+        return
+
+    if current in ifaces and not ram.widgets.AskViaButtons(
+        "Change device to use as default gateway?",
+        "Current default route interface:\n\n\t%s\n\n"
+        "Would you like to set default route interface:\n\n\t%s\n\n?" % (
+            current, ifname
+        )
+    ):
+        return
+
+    config['default'] = ifname
+    EditGatewayAddress(config)
+
+
 if __name__ == '__main__':
     config = ram.query()
     params = ram.param()
 
-    ifaces = config['ifaces'].split()
     if not params.device:
         RoutesConfigurationMenu(config, params.wizard)
     elif params.device == "no":
-        config['default'] = ""
-    elif params.device in ifaces:
-        config['default'] = params.device
-        EditGatewayAddress(config, config['default'])
-    elif params.device is not None:
-        raise SystemExit("No suitable device found on the machine.")
+        RemoveGatewayDevice(config)
+    elif params.device:
+        ModifyGatewayDevice(config, params.device)
 
     ram.store(input=config)

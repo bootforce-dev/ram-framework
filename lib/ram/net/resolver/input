@@ -44,31 +44,33 @@ def SelectPeerDnsDevice(config, ensure=False):
     config['peerdns'] = ifname if ifname in ifaces else ""
 
 
-def EditIfaceDnsServers(config, ifname):
-    if ifname and not ram.widgets.AskViaButtons(
+def EditIfaceDnsServers(config):
+    current = config['peerdns']
+
+    if current and not ram.widgets.AskViaButtons(
         "Use static configuration?",
-        "Current DNS configuration set to obtain DNS addresses via DHCP protocol using `%s`.\n\n"
-        "Would you like to use static configuration?\n" % ifname
+        "Current DNS configuration set to obtain DNS addresses via DHCP protocol using interface:\n\n\t%s\n\n"
+        "Would you like to use static configuration?\n" % current
     ):
-        config['peerdns'] = ifname
-    else:
-        domains, pri_dns, sec_dns = ram.widgets.RunEntry(
-            "Interface DNS configuration",
-            "Specify domain search list, primary and secondary DNS addresses.",
-            [
-                ("Search list", config['domains'], ValidateDomainList),
-                ("Primary", config['pri_dns'], ValidateEmptyOrIpV4),
-                ("Secondary", config['sec_dns'], ValidateEmptyOrIpV4),
-            ]
-        )
+        return
 
-        if not pri_dns and sec_dns:
-            pri_dns, sec_dns = sec_dns, pri_dns
+    domains, pri_dns, sec_dns = ram.widgets.RunEntry(
+        "Interface DNS configuration",
+        "Specify domain search list, primary and secondary DNS addresses.",
+        [
+            ("Search list", config['domains'], ValidateDomainList),
+            ("Primary", config['pri_dns'], ValidateEmptyOrIpV4),
+            ("Secondary", config['sec_dns'], ValidateEmptyOrIpV4),
+        ]
+    )
 
-        config['peerdns'] = ""
-        config['domains'] = domains
-        config['pri_dns'] = pri_dns
-        config['sec_dns'] = sec_dns
+    if not pri_dns and sec_dns:
+        pri_dns, sec_dns = sec_dns, pri_dns
+
+    config['peerdns'] = ""
+    config['domains'] = domains
+    config['pri_dns'] = pri_dns
+    config['sec_dns'] = sec_dns
 
 
 def RunDnsConfigurationMenu(config, wizard):
@@ -81,13 +83,13 @@ def RunDnsConfigurationMenu(config, wizard):
             SwitchPeerDnsDevice(config, -1)
 
     def __EditPrimaryDnsServer(action):
-        EditIfaceDnsServers(config, config['peerdns'])
+        EditIfaceDnsServers(config)
 
     def __EditSecondaryDnsServer(action):
-        EditIfaceDnsServers(config, config['peerdns'])
+        EditIfaceDnsServers(config)
 
     def __EditDomainSearchList(action):
-        EditIfaceDnsServers(config, config['peerdns'])
+        EditIfaceDnsServers(config)
 
     if not config['pri_dns'] and config['sec_dns']:
         config['pri_dns'], config['sec_dns'] = config['sec_dns'], config['pri_dns']
@@ -116,18 +118,49 @@ def RunDnsConfigurationMenu(config, wizard):
     )
 
 
+def ModifyPeerDnsDevice(config, ifname):
+    ifaces = config['ifaces'].split()
+    current = config['peerdns']
+
+    if not ifname in ifaces:
+        return ram.widgets.ShowError(
+            ifname,
+            "No suitable device found on the machine.",
+        )
+
+    if current == ifname:
+        return
+
+    if not current and not ram.widgets.AskViaButtons(
+        "Use dynamic configuration?",
+        "Current DNS configuration set to use static DNS addresses:\n\n\t%s\n\t%s\n\n"
+        "Would you like to obtain DNS addresses via DHCP protocol using interface:\n\n\t%s\n\n?" % (
+            config['pri_dns'], config['sec_dns'], ifname,
+        )
+    ):
+        return
+
+    if current in ifaces and not ram.widgets.AskViaButtons(
+        "Change device to obtain DNS addresses?",
+        "Current DNS configuration set to obtain DNS addresses via DHCP protocol using interface:\n\n\t%s\n\n"
+        "Would you like to obtain DNS addresses via DHCP protocol using interface:\n\n\t%s\n\n?" % (
+            current, ifname
+        )
+    ):
+        return
+
+    config['peerdns'] = params.device
+
+
 if __name__ == '__main__':
     config = ram.query()
     params = ram.param()
 
-    ifaces = config['ifaces'].split()
     if not params.device:
         RunDnsConfigurationMenu(config, params.wizard)
     elif params.device == "no":
-        EditIfaceDnsServers(config, config['peerdns'])
-    elif params.device in ifaces:
-        config['peerdns'] = params.device
-    elif params.device is not None:
-        raise SystemExit("No suitable device found on the machine.")
+        EditIfaceDnsServers(config)
+    elif params.device:
+        ModifyPeerDnsDevice(config, params.device)
 
     ram.store(input=config)
