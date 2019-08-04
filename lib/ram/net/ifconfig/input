@@ -8,6 +8,13 @@ with ram.context(__name__):
     from wiz.entry import RunDictIndex
     from net.utils import ValidateEmptyOrIpV4
 
+    from ..resolver.entry import ModifyPeerDnsDevice
+    from ..resolver.entry import EditIfaceDnsServers
+
+    from ..routing.entry import ModifyGatewayDevice
+    from ..routing.entry import RemoveGatewayDevice
+    from ..routing.entry import EditGatewayAddress
+
 
 def EditIfaceIpAddressAndNetwork(config, ifname):
     ifconf = config['ifconfig'][ifname]
@@ -35,6 +42,8 @@ def EditIfaceIpAddressAndNetwork(config, ifname):
 
 def EditNetworkIface(config, ifname):
     ifconf = config['ifconfig'][ifname]
+    backup_peerdns = config['resolver']['peerdns']
+    backup_default = config['routing']['default']
 
     def __SwitchIfaceEnabled():
         ifconf['enabled'] = "" if ifconf['enabled'] else "_"
@@ -67,9 +76,27 @@ def EditNetworkIface(config, ifname):
             ):
                 return
 
-        ifconf['enabled'] = ""
-        ifconf['defconf'] = "_"
+        DelNetworkIfaceNow(config, ifname)
         return ifname
+
+    def __SwitchIfacePeerDns():
+        if not config['resolver']['peerdns'] == ifname:
+            ModifyPeerDnsDevice(config, ifname)
+        elif backup_peerdns and backup_peerdns != ifname:
+            ModifyPeerDnsDevice(config, backup_peerdns)
+        else:
+            EditIfaceDnsServers(config)
+
+    def __SwitchIfaceDefault():
+        if not config['routing']['default'] == ifname:
+            ModifyGatewayDevice(config, ifname)
+        elif backup_default and backup_default != ifname:
+            ModifyGatewayDevice(config, backup_default)
+        else:
+            RemoveGatewayDevice(config)
+
+    def __EditIfaceIpGateway():
+        EditGatewayAddress(config, ifname)
 
     def __MkEditNetworkIface():
         devname = ifconf['hw_addr'] or "*** NOT FOUND ***"
@@ -77,6 +104,23 @@ def EditNetworkIface(config, ifname):
         usedhcp = "yes" if ifconf['usedhcp'] else "no"
         ip_addr = "dhcp" if ifconf['usedhcp'] else ifconf['ip_addr']
         netmask = "dhcp" if ifconf['usedhcp'] else ifconf['netmask']
+
+        if config['resolver']['peerdns'] == ifname:
+            warning = "" if ifconf['hw_addr'] and ifconf['enabled'] and ifconf['usedhcp'] else " *"
+            peerdns = "yes" + warning
+        else:
+            peerdns = "no"
+
+        if config['routing']['default'] == ifname:
+            warning = "" if ifconf['hw_addr'] and ifconf['enabled'] else " *"
+            default = "yes" + warning
+        else:
+            default = "no"
+
+        gateway =  ifconf['gateway']
+
+        if ifconf['usedhcp'] and (ifconf['ignored'] or not gateway):
+            gateway = "dhcp"
 
         return [
             ("%-16s %-16s" % ("HW addr:", devname), 0),
@@ -86,39 +130,68 @@ def EditNetworkIface(config, ifname):
             ("", 2),
             ("%-16s %-15s" % ("IP addr:", ip_addr), __EditIfaceIpAddress),
             ("%-16s %-15s" % ("Netmask:", netmask), __EditIfaceIpNetwork),
+            ("%-16s %-15s" % ("Gateway:", gateway), __EditIfaceIpGateway),
             ("", 3),
+            ("%-16s %s" % ("Default route:", default), __SwitchIfaceDefault),
+            ("", 4),
+            ("%-16s %s" % ("Use DHCP DNS:", peerdns), __SwitchIfacePeerDns),
+            ("", 5),
             ("Reset configuration ..." if ifconf['hw_addr'] else "Delete configuration ...", __SwitchIfaceDefconf),
         ]
 
     return ram.widgets.RunMenu("Select Action - %s" % ifname, __MkEditNetworkIface)
 
 
-def AddNetworkIface(config, ifname, device=None):
+def AddNetworkIfaceNow(config, ifname):
     ifconf = config['ifconfig'][ifname]
 
+    ifconf['defconf'] = ""
+    ifconf['enabled'] = "_"
+    ifconf['usedhcp'] = "_"
+
+    if not config['routing']['default']:
+        config['routing']['default'] = ifname
+
+    if not config['resolver']['peerdns'] and (
+        not config['resolver']['pri_dns'] and
+        not config['resolver']['sec_dns']
+    ):
+        config['resolver']['peerdns'] = ifname
+
+
+def AddNetworkIface(config, ifname, device=None):
     if ram.widgets.AskViaButtons(
         "Unconfigured interface `%s`" % ifname,
         "Interface `%s` is found but not configured.\n\n"
         "Would you like to initialize it now?" % ifname
     ):
-        ifconf['defconf'] = ""
-        ifconf['enabled'] = "_"
-        ifconf['usedhcp'] = "_"
+        AddNetworkIfaceNow(config, ifname)
 
         if device:
             EditNetworkIface(config, ifname)
 
 
-def DelNetworkIface(config, ifname, device=None):
+def DelNetworkIfaceNow(config, ifname):
     ifconf = config['ifconfig'][ifname]
 
+    ifconf['defconf'] = "_"
+    ifconf['enabled'] = ""
+    ifconf['usedhcp'] = ""
+
+    if config['routing']['default'] == ifname:
+        config['routing']['default'] = ""
+
+    if config['resolver']['peerdns'] == ifname:
+        config['resolver']['peerdns'] = ""
+
+
+def DelNetworkIface(config, ifname, device=None):
     if not device and ram.widgets.AskViaButtons(
         "Missing interface `%s`" % ifname,
         "Interface `%s` is configured but not found.\n\n"
         "Would you like to delete it permanently?" % ifname
     ):
-        ifconf['enabled'] = ""
-        ifconf['defconf'] = "_"
+        DelNetworkIfaceNow(config, ifname)
     else:
         EditNetworkIface(config, ifname)
 
