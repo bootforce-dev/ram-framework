@@ -76,8 +76,7 @@ def EditNetworkIface(config, ifname):
             ):
                 return
 
-        ifconf['enabled'] = ""
-        ifconf['defconf'] = "_"
+        DelNetworkIfaceNow(config, ifname)
         return ifname
 
     def __SwitchIfacePeerDns():
@@ -134,32 +133,56 @@ def EditNetworkIface(config, ifname):
     return ram.widgets.RunMenu("Select Action - %s" % ifname, __MkEditNetworkIface)
 
 
-def AddNetworkIface(config, ifname, device=None):
+def AddNetworkIfaceNow(config, ifname):
     ifconf = config['ifconfig'][ifname]
 
+    ifconf['defconf'] = ""
+    ifconf['enabled'] = "_"
+    ifconf['usedhcp'] = "_"
+
+    if not config['routing']['default']:
+        config['routing']['default'] = ifname
+
+    if not config['resolver']['peerdns'] and (
+        not config['resolver']['pri_dns'] and
+        not config['resolver']['sec_dns']
+    ):
+        config['resolver']['peerdns'] = ifname
+
+
+def AddNetworkIface(config, ifname, device=None):
     if ram.widgets.AskViaButtons(
         "Unconfigured interface `%s`" % ifname,
         "Interface `%s` is found but not configured.\n\n"
         "Would you like to initialize it now?" % ifname
     ):
-        ifconf['defconf'] = ""
-        ifconf['enabled'] = "_"
-        ifconf['usedhcp'] = "_"
+        AddNetworkIfaceNow(config, ifname)
 
         if device:
             EditNetworkIface(config, ifname)
 
 
-def DelNetworkIface(config, ifname, device=None):
+def DelNetworkIfaceNow(config, ifname):
     ifconf = config['ifconfig'][ifname]
 
+    ifconf['defconf'] = "_"
+    ifconf['enabled'] = ""
+    ifconf['usedhcp'] = ""
+
+    if config['routing']['default'] == ifname:
+        config['routing']['default'] = ""
+
+    if config['resolver']['peerdns'] == ifname:
+        config['resolver']['peerdns'] = ""
+
+
+def DelNetworkIface(config, ifname, device=None):
     if not device and ram.widgets.AskViaButtons(
         "Missing interface `%s`" % ifname,
         "Interface `%s` is configured but not found.\n\n"
         "Would you like to delete it permanently?" % ifname
     ):
-        ifconf['enabled'] = ""
-        ifconf['defconf'] = "_"
+        DelNetworkIfaceNow(config, ifname)
     else:
         EditNetworkIface(config, ifname)
 
