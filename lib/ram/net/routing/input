@@ -18,6 +18,6 @@ if __name__ == '__main__':
     elif params.device == "no":
         RemoveGatewayDevice(config)
     elif params.device:
-        ModifyGatewayDevice(config, params.device)
+        ModifyGatewayDevice(config, params.device, edit_address=True)
 
     ram.store('net.network', input=config)

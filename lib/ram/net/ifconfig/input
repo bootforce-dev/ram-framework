@@ -91,7 +91,7 @@ def EditNetworkIface(config, ifname):
         if not config['routing']['default'] == ifname:
             ModifyGatewayDevice(config, ifname)
         elif backup_default and backup_default != ifname:
-            ModifyGatewayDevice(config, backup_default)
+            ModifyGatewayDevice(config, backup_default, show_confirm=False)
         else:
             RemoveGatewayDevice(config)
 

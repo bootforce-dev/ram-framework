@@ -10,5 +10,6 @@ def ListPeerDnsDevices(config):
 def ListEnabledDevices(config):
     return list(sorted(
         ifname for ifname in config
-        if config[ifname]['enabled']
+        if config[ifname]['hw_addr']
+        and config[ifname]['enabled']
     ))
