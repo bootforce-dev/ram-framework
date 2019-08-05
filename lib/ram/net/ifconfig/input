@@ -11,6 +11,10 @@ with ram.context(__name__):
     from ..resolver.entry import ModifyPeerDnsDevice
     from ..resolver.entry import EditIfaceDnsServers
 
+    from ..routing.entry import ModifyGatewayDevice
+    from ..routing.entry import RemoveGatewayDevice
+    from ..routing.entry import EditGatewayAddress
+
 
 def EditIfaceIpAddressAndNetwork(config, ifname):
     ifconf = config['ifconfig'][ifname]
@@ -39,6 +43,7 @@ def EditIfaceIpAddressAndNetwork(config, ifname):
 def EditNetworkIface(config, ifname):
     ifconf = config['ifconfig'][ifname]
     backup_peerdns = config['resolver']['peerdns']
+    backup_default = config['routing']['default']
 
     def __SwitchIfaceEnabled():
         ifconf['enabled'] = "" if ifconf['enabled'] else "_"
@@ -83,6 +88,17 @@ def EditNetworkIface(config, ifname):
         else:
             EditIfaceDnsServers(config)
 
+    def __SwitchIfaceDefault():
+        if not config['routing']['default'] == ifname:
+            ModifyGatewayDevice(config, ifname)
+        elif backup_default and backup_default != ifname:
+            ModifyGatewayDevice(config, backup_default)
+        else:
+            RemoveGatewayDevice(config)
+
+    def __EditIfaceIpGateway():
+        EditGatewayAddress(config, ifname)
+
     def __MkEditNetworkIface():
         devname = ifconf['hw_addr'] or "*** NOT FOUND ***"
         enabled = "yes" if ifconf['enabled'] else "no"
@@ -91,6 +107,12 @@ def EditNetworkIface(config, ifname):
         netmask = "dhcp" if ifconf['usedhcp'] else ifconf['netmask']
 
         peerdns = "yes" if config['resolver']['peerdns'] == ifname else "no"
+        default = "yes" if config['routing']['default'] == ifname else "no"
+
+        gateway =  ifconf['gateway']
+
+        if ifconf['usedhcp'] and (ifconf['ignored'] or not gateway):
+            gateway = "dhcp"
 
         return [
             ("%-16s %-16s" % ("HW addr:", devname), 0),
@@ -98,11 +120,14 @@ def EditNetworkIface(config, ifname):
             ("%-16s %s" % ("Enabled:", enabled), __SwitchIfaceEnabled),
             ("%-16s %s" % ("Use DHCP:", usedhcp), __SwitchIfaceUseDhcp),
             ("", 2),
-            ("%-16s %s" % ("  Use DNS:", peerdns), __SwitchIfacePeerDns) if ifconf['usedhcp'] else ("", 21),
+            ("%-16s %s" % ("Use DHCP DNS:", peerdns), __SwitchIfacePeerDns) if ifconf['usedhcp'] else ("", 21),
             ("", 3),
             ("%-16s %-15s" % ("IP addr:", ip_addr), __EditIfaceIpAddress),
             ("%-16s %-15s" % ("Netmask:", netmask), __EditIfaceIpNetwork),
+            ("%-16s %-15s" % ("Gateway:", gateway), __EditIfaceIpGateway),
             ("", 4),
+            ("%-16s %s" % ("Default:", default), __SwitchIfaceDefault),
+            ("", 5),
             ("Reset configuration ..." if ifconf['hw_addr'] else "Delete configuration ...", __SwitchIfaceDefconf),
         ]
 
