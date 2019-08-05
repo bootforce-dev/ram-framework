@@ -33,4 +33,4 @@ class __api__(UnitService):
     def __call__(self, location, *args, **kwargs):
         symbols = ram.query(str(location))
 
-        return iter(self._symbols(symbols, args))
+        return tuple(self._symbols(symbols, args))
