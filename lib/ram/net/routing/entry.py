@@ -6,41 +6,63 @@ import ram.widgets
 
 with ram.context(__name__):
     from ..utils import ValidateEmptyOrIpV4, ValidateIpV4
-    from ..network.utils import ListEnabledDevices
+    from .utils import ListGatewayDevices
+    from .utils import CheckGatewayDevice
+    from .utils import ShownGatewayIpAddr
 
 
 def SwitchGatewayDevice(config, delta):
-    ifaces = ListEnabledDevices(config['ifconfig'])
-    current = config['routing']['default'] or "no"
-    options = ["no"] + ifaces[:]
+    devices = ListGatewayDevices(config['ifconfig'])
+    ifname_ = config['routing']['default']
+    options = [""] + sorted(devices)
 
-    ifname = options[(options.index(current) + delta) % len(options)]
+    config['routing']['default'] = options[
+        (options.index(ifname_) + delta) % len(options)
+    ]
 
-    config['routing']['default'] = ifname if ifname in ifaces else ""
+
+def SelectGatewayDevice(config):
+    devices = ListGatewayDevices(config['ifconfig'])
+    ifname_ = config['routing']['default']
+
+    options = [
+        ("no", "")
+    ] + [
+        (_ + (" *" if devices[_] else ""), _) for _ in sorted(devices)
+    ]
+
+    config['routing']['default'] = ram.widgets.SingleChoice(
+        "Select gateway device",
+        "",
+        options,
+        current=ifname_
+    )
 
 
-def SelectGatewayDevice(config, ensure=False):
-    ifaces = ListEnabledDevices(config['ifconfig'])
-    current = config['routing']['default'] or "no"
-    options = ["no"] + ifaces[:]
+def EnsureGatewayDevice(config):
+    ifname_ = config['routing']['default']
 
-    if current not in options:
-        if not ram.widgets.AskViaButtons(
-            "Incorrect gateway device",
-            "Current interface for default route `%s`\n"
-            "is not available or enabled at the moment.\n\n"
-            "What would you like to do with gateway device?\n" % current,
-            "Select device ...", "Keep `%s`" % current
+    if ifname_:
+        ifconf_ = config['ifconfig'][ifname_]
+        iserror_, warning_ = CheckGatewayDevice(ifconf_)
+
+        if not warning_:
+            pass
+        elif ram.widgets.AskViaButtons(
+            "Continue with device to use as default gateway?",
+            "Current default route interface:\n\n"
+            "  %s\n\n"
+            "  %s\n\n"
+            "Would you like to select another device?\n" % (
+                ifname_, warning_
+            ),
+            "Select device ...", "Keep `%s`" % ifname_
         ):
-            return
-    elif ensure:
-        return
+            SelectGatewayDevice(config)
+        elif iserror_:
+            return False
 
-    ifname = ram.widgets.SingleChoice("Select gateway device", "", options, current=current)
-    if ifname == current:
-        return
-
-    config['routing']['default'] = ifname if ifname in ifaces else ""
+    return True
 
 
 def EditGatewayAddress(config, ifname):
@@ -84,22 +106,25 @@ def RoutesConfigurationMenu(config, wizard):
     def __MkRoutesConfigurationMenu():
         default = config['routing']['default']
 
-        usedhcp = config['ifconfig'][default]['usedhcp'] if default else ""
-        ignored = config['ifconfig'][default]['ignored'] if default else ""
-        gateway = config['ifconfig'][default]['gateway'] if default else ""
-
-        if usedhcp and (ignored or not gateway):
-            gateway = "dhcp"
-
-        default = default if default else "no"
+        if not default:
+            default = "no"
+            gateway = ""
+            warning = ""
+        else:
+            _ifconf = config['ifconfig'][default]
+            gateway = ShownGatewayIpAddr(_ifconf)
+            iserror, warning = CheckGatewayDevice(_ifconf)
 
         return [
             ("%-16s" % ("Default route:"), 0),
             ("%-16s < %6s >" % ("  Interface:", default.center(6)), __SelectGatewayDevice),
             ("%-16s %-15s" % ("  Gateway:", gateway), __EditGatewayAddress),
+            ("", 1),
+            ("%-32s" % warning, 2),
         ]
 
-    SelectGatewayDevice(config, ensure=True)
+    if not EnsureGatewayDevice(config):
+        return
 
     ram.widgets.RunMenu(
         "Select Action - Routing",
@@ -110,48 +135,85 @@ def RoutesConfigurationMenu(config, wizard):
     )
 
 
-def RemoveGatewayDevice(config):
-    ifaces = ListEnabledDevices(config['ifconfig'])
-    current = config['routing']['default']
+def RemoveGatewayDevice(config, show_confirm=True):
+    ifname_ = config['routing']['default']
 
-    if current in ifaces and not ram.widgets.AskViaButtons(
-        "Remove device to use as default gateway?",
-        "Current default route interface:\n\n\t%s\n\n"
-        "Would you like to reset default route interface?" % current
-    ):
-        return
+    if show_confirm:
+        if ifname_:
+            ifconf_ = config['ifconfig'][ifname_]
+            iserror_, warning_ = CheckGatewayDevice(ifconf_)
+
+            if not ram.widgets.AskViaButtons(
+                "Remove device to use as default gateway?",
+                "Current default route interface:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
+                "Proposed to reset default route interface.\n\n"
+                "Would you like to continue?" % (
+                    ifname_, warning_
+                )
+            ):
+                return
 
     config['routing']['default'] = ""
 
 
-def ModifyGatewayDevice(config, ifname):
-    ifaces = ListEnabledDevices(config['ifconfig'])
-    current = config['routing']['default']
+def ModifyGatewayDevice(config, ifname, show_confirm=True, edit_address=False):
+    ifname_ = config['routing']['default']
+    ifconf = config['ifconfig'][ifname]
 
-    if not ifname in ifaces:
-        return ram.widgets.ShowError(
-            ifname,
-            "No suitable device found on the machine.",
-        )
+    if show_confirm:
+        iserror, warning = CheckGatewayDevice(ifconf)
 
-    if current == ifname:
-        return
+        if ifname_ == ifname:
+            if not warning:
+                pass
+            elif not ram.widgets.AskViaButtons(
+                "Continue with device to use as default gateway?",
+                "Current default route interface:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
+                "Would you like to keep using device?\n" % (
+                    ifname, warning
+                ),
+                "Keep", "Reset"
+            ):
+                ifname = ""
+            elif iserror:
+                return
+        elif iserror:
+            return ram.widgets.ShowError(ifname, warning)
+        elif not ifname_:
+            if not ram.widgets.AskViaButtons(
+                "Change device to use as default gateway?",
+                "Current default route interface is not set.\n\n"
+                "Proposed default route interface:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
+                "Would you like to continue?" % (
+                    ifname, warning
+                )
+            ):
+                return
+        else:
+            ifconf_ = config['ifconfig'][ifname_]
+            iserror_, warning_ = CheckGatewayDevice(ifconf_)
 
-    if not current and not ram.widgets.AskViaButtons(
-        "Change device to use as default gateway?",
-        "Current default route interface is not set.\n\n"
-        "Would you like to set default route interface:\n\n\t%s\n\n?" % ifname
-    ):
-        return
-
-    if current in ifaces and not ram.widgets.AskViaButtons(
-        "Change device to use as default gateway?",
-        "Current default route interface:\n\n\t%s\n\n"
-        "Would you like to set default route interface:\n\n\t%s\n\n?" % (
-            current, ifname
-        )
-    ):
-        return
+            if not ram.widgets.AskViaButtons(
+                "Change device to use as default gateway?",
+                "Current default route interface:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
+                "Proposed default route interface:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
+                "Would you like to continue?" % (
+                    ifname_, warning_, ifname, warning
+                )
+            ):
+                return
 
     config['routing']['default'] = ifname
-    EditGatewayAddress(config, config['routing']['default'])
+
+    if ifname and edit_address:
+        EditGatewayAddress(config, config['routing']['default'])

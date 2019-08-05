@@ -9,11 +9,16 @@ with ram.context(__name__):
     from net.utils import ValidateEmptyOrIpV4
 
     from ..resolver.entry import ModifyPeerDnsDevice
-    from ..resolver.entry import EditIfaceDnsServers
+    from ..resolver.entry import RemovePeerDnsDevice
+
+    from ..resolver.utils import CheckPeerDnsDevice
 
     from ..routing.entry import ModifyGatewayDevice
     from ..routing.entry import RemoveGatewayDevice
     from ..routing.entry import EditGatewayAddress
+
+    from ..routing.utils import CheckGatewayDevice
+    from ..routing.utils import ShownGatewayIpAddr
 
 
 def EditIfaceIpAddressAndNetwork(config, ifname):
@@ -83,15 +88,15 @@ def EditNetworkIface(config, ifname):
         if not config['resolver']['peerdns'] == ifname:
             ModifyPeerDnsDevice(config, ifname)
         elif backup_peerdns and backup_peerdns != ifname:
-            ModifyPeerDnsDevice(config, backup_peerdns)
+            ModifyPeerDnsDevice(config, backup_peerdns, show_confirm=False)
         else:
-            EditIfaceDnsServers(config)
+            RemovePeerDnsDevice(config)
 
     def __SwitchIfaceDefault():
         if not config['routing']['default'] == ifname:
             ModifyGatewayDevice(config, ifname)
         elif backup_default and backup_default != ifname:
-            ModifyGatewayDevice(config, backup_default)
+            ModifyGatewayDevice(config, backup_default, show_confirm=False)
         else:
             RemoveGatewayDevice(config)
 
@@ -106,21 +111,18 @@ def EditNetworkIface(config, ifname):
         netmask = "dhcp" if ifconf['usedhcp'] else ifconf['netmask']
 
         if config['resolver']['peerdns'] == ifname:
-            warning = "" if ifconf['hw_addr'] and ifconf['enabled'] and ifconf['usedhcp'] else " *"
-            peerdns = "yes" + warning
+            iserror, warning = CheckPeerDnsDevice(ifconf)
+            peerdns = "yes" + (" *" if warning else "")
         else:
             peerdns = "no"
 
         if config['routing']['default'] == ifname:
-            warning = "" if ifconf['hw_addr'] and ifconf['enabled'] else " *"
-            default = "yes" + warning
+            iserror, warning = CheckGatewayDevice(ifconf)
+            default = "yes" + (" *" if warning else "")
         else:
             default = "no"
 
-        gateway =  ifconf['gateway']
-
-        if ifconf['usedhcp'] and (ifconf['ignored'] or not gateway):
-            gateway = "dhcp"
+        gateway = ShownGatewayIpAddr(ifconf)
 
         return [
             ("%-16s %-16s" % ("HW addr:", devname), 0),

@@ -4,7 +4,7 @@ import ram.symbols
 import ram.context
 
 with ram.context(__name__):
-    from ..network.utils import ListEnabledDevices
+    from .utils import ListGatewayDevices
 
 if __name__ == '__main__':
     config = ram.query('net.network')
@@ -15,6 +15,6 @@ if __name__ == '__main__':
         config['routing'][ifname]['ignored'] = config['ifconfig'][ifname]['ignored']
         config['routing'][ifname]['gateway'] = config['ifconfig'][ifname]['gateway']
 
-    config['routing']['ifaces'] = " ".join(ListEnabledDevices(config['ifconfig']))
+    config['routing']['ifaces'] = " ".join(sorted(ListGatewayDevices(config['ifconfig'])))
 
     ram.symbols.send(config['routing'])

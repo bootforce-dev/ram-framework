@@ -4,7 +4,7 @@ import ram.context
 import ram.symbols
 
 with ram.context(__name__):
-    from ..network.utils import ListPeerDnsDevices
+    from .utils import ListPeerDnsDevices
 
 
 if __name__ == '__main__':
@@ -14,6 +14,6 @@ if __name__ == '__main__':
         config['resolver'][ifname]['enabled'] = config['ifconfig'][ifname]['enabled']
         config['resolver'][ifname]['usedhcp'] = config['ifconfig'][ifname]['usedhcp']
 
-    config['resolver']['ifaces'] = " ".join(ListPeerDnsDevices(config['ifconfig']))
+    config['resolver']['ifaces'] = " ".join(sorted(ListPeerDnsDevices(config['ifconfig'])))
 
     ram.symbols.send(config['resolver'])

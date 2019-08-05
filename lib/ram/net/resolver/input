@@ -5,7 +5,7 @@ import ram.context
 
 with ram.context(__name__):
     from entry import RunDnsConfigurationMenu
-    from entry import EditIfaceDnsServers
+    from entry import RemovePeerDnsDevice
     from entry import ModifyPeerDnsDevice
 
 
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     if not params.device:
         RunDnsConfigurationMenu(config, params.wizard)
     elif params.device == "no":
-        EditIfaceDnsServers(config)
+        RemovePeerDnsDevice(config, edit_address=True)
     elif params.device:
         ModifyPeerDnsDevice(config, params.device)
 
