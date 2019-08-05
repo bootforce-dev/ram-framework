@@ -1,21 +1,20 @@
 #!/usr/bin/python
 
 import ram.symbols
+import ram.context
 
+with ram.context(__name__):
+    from ..network.utils import ListEnabledDevices
 
 if __name__ == '__main__':
     config = ram.query('net.network')
 
-    ifaces = [
-        ifname for ifname in config['ifconfig']
-        if config['ifconfig'][ifname]['enabled']
-    ]
-
-    for ifname in ifaces:
+    for ifname in config['ifconfig']:
+        config['routing'][ifname]['enabled'] = config['ifconfig'][ifname]['enabled']
         config['routing'][ifname]['usedhcp'] = config['ifconfig'][ifname]['usedhcp']
         config['routing'][ifname]['ignored'] = config['ifconfig'][ifname]['ignored']
         config['routing'][ifname]['gateway'] = config['ifconfig'][ifname]['gateway']
 
-    config['routing']['ifaces'] = " ".join(sorted(ifaces))
+    config['routing']['ifaces'] = " ".join(ListEnabledDevices(config['ifconfig']))
 
     ram.symbols.send(config['routing'])
