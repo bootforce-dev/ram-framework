@@ -83,9 +83,9 @@ def EditNetworkIface(config, ifname):
         if not config['resolver']['peerdns'] == ifname:
             ModifyPeerDnsDevice(config, ifname)
         elif backup_peerdns and backup_peerdns != ifname:
-            ModifyPeerDnsDevice(config, backup_peerdns)
+            ModifyPeerDnsDevice(config, backup_peerdns, show_confirm=False)
         else:
-            EditIfaceDnsServers(config)
+            EditIfaceDnsServers(config, edit_servers=False)
 
     def __SwitchIfaceDefault():
         if not config['routing']['default'] == ifname:

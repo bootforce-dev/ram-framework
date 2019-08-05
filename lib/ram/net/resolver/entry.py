@@ -12,24 +12,24 @@ from ram.widgets import *
 
 
 def SwitchPeerDnsDevice(config, delta):
-    ifaces = ListPeerDnsDevices(config['ifconfig'])
+    devices = ListPeerDnsDevices(config['ifconfig'])
     current = config['resolver']['peerdns'] or "no"
-    options = ["no"] + ifaces[:]
+    options = ["no"] + devices[:]
 
-    ifname = options[(options.index(current) + delta) % len(options)]
+    propose = options[(options.index(current) + delta) % len(options)]
 
-    config['resolver']['peerdns'] = ifname if ifname in ifaces else ""
+    config['resolver']['peerdns'] = propose if propose in devices else ""
 
 
 def SelectPeerDnsDevice(config, ensure=False):
-    ifaces = ListPeerDnsDevices(config['ifconfig'])
+    devices = ListPeerDnsDevices(config['ifconfig'])
     current = config['resolver']['peerdns'] or "no"
-    options = ["no"] + ifaces[:]
+    options = ["no"] + devices[:]
 
     if current not in options:
         if not ram.widgets.AskViaButtons(
             "Incorrect DNS over DHCP",
-            "Current DHCP interface for obtaining DNS `%s`\n"
+            "WARNING: Current DHCP interface for obtaining DNS `%s`\n"
             "is not available or configured at the moment.\n\n"
             "What would you like to do with DNS over DHCP?\n" % current,
             "Select device ...", "Keep `%s`" % current
@@ -38,22 +38,27 @@ def SelectPeerDnsDevice(config, ensure=False):
     elif ensure:
         return
 
-    ifname = ram.widgets.SingleChoice("Obtain DNS addresses over DHCP?", "", options, current=current)
-    if ifname == current:
+    propose = ram.widgets.SingleChoice("Obtain DNS addresses over DHCP?", "", options, current=current)
+    if propose == current:
         return
 
-    config['resolver']['peerdns'] = ifname if ifname in ifaces else ""
+    config['resolver']['peerdns'] = propose if propose in devices else ""
 
 
-def EditIfaceDnsServers(config):
+def EditIfaceDnsServers(config, edit_servers=True):
     resolv = config['resolver']
     current = resolv['peerdns']
 
     if current and not ram.widgets.AskViaButtons(
         "Use static configuration?",
-        "Current DNS configuration set to obtain DNS addresses via DHCP protocol using interface:\n\n\t%s\n\n"
+        "Current interface to obtain DNS configuration via DHCP:\n\n\t%s\n\n"
         "Would you like to use static configuration?\n" % current
     ):
+        return
+
+    resolv['peerdns'] = ""
+
+    if not edit_servers:
         return
 
     domains, pri_dns, sec_dns = ram.widgets.RunEntry(
@@ -69,7 +74,6 @@ def EditIfaceDnsServers(config):
     if not pri_dns and sec_dns:
         pri_dns, sec_dns = sec_dns, pri_dns
 
-    resolv['peerdns'] = ""
     resolv['domains'] = domains
     resolv['pri_dns'] = pri_dns
     resolv['sec_dns'] = sec_dns
@@ -122,35 +126,47 @@ def RunDnsConfigurationMenu(config, wizard):
     )
 
 
-def ModifyPeerDnsDevice(config, ifname):
-    ifaces = ListPeerDnsDevices(config['ifconfig'])
+def ModifyPeerDnsDevice(config, propose, show_confirm=True):
     current = config['resolver']['peerdns']
+    _ifconf = config['ifconfig'][propose]
 
-    if not ifname in ifaces:
-        return ram.widgets.ShowError(
-            ifname,
-            "No suitable device found on the machine.",
-        )
+    if not current == propose and show_confirm:
+        if not _ifconf:
+            return ram.widgets.ShowError(
+                propose,
+                "Device not found!",
+            )
 
-    if current == ifname:
-        return
+        if not _ifconf['hw_addr']:
+            warning = "WARNING: Device is not found!\n\n"
+        elif not _ifconf['enabled']:
+            warning = "WARNING: Device is not enabled!\n\n"
+        elif not _ifconf['usedhcp']:
+            warning = "WARNING: Device is not using DHCP!\n\n"
+        else:
+            warning = ""
 
-    if not current and not ram.widgets.AskViaButtons(
-        "Use dynamic configuration?",
-        "Current DNS configuration set to use static DNS addresses:\n\n\t%s\n\t%s\n\n"
-        "Would you like to obtain DNS addresses via DHCP protocol using interface:\n\n\t%s\n\n?" % (
-            config['resolver']['pri_dns'], config['resolver']['sec_dns'], ifname,
-        )
-    ):
-        return
+        if not current or not config['ifconfig'][current]:
+            if not ram.widgets.AskViaButtons(
+                "Use dynamic configuration?",
+                "Current DNS configuration is static.\n\n"
+                "Proposed interface to obtain DNS configuration via DHCP:\n\n\t%s\n\n"
+                "%s"
+                "Would you like to continue?" % (
+                    propose, warning
+                )
+            ):
+                return
+        else:
+            if not ram.widgets.AskViaButtons(
+                "Change device to obtain DNS addresses?",
+                "Current interface to obtain DNS configuration via DHCP:\n\n\t%s\n\n"
+                "Proposed interface to obtain DNS configuration via DHCP:\n\n\t%s\n\n"
+                "%s"
+                "Would you like to continue?" % (
+                    current, propose, warning
+                )
+            ):
+                return
 
-    if current in ifaces and not ram.widgets.AskViaButtons(
-        "Change device to obtain DNS addresses?",
-        "Current DNS configuration set to obtain DNS addresses via DHCP protocol using interface:\n\n\t%s\n\n"
-        "Would you like to obtain DNS addresses via DHCP protocol using interface:\n\n\t%s\n\n?" % (
-            current, ifname
-        )
-    ):
-        return
-
-    config['resolver']['peerdns'] = ifname
+    config['resolver']['peerdns'] = propose
