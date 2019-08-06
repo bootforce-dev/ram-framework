@@ -105,8 +105,17 @@ def EditNetworkIface(config, ifname):
         ip_addr = "dhcp" if ifconf['usedhcp'] else ifconf['ip_addr']
         netmask = "dhcp" if ifconf['usedhcp'] else ifconf['netmask']
 
-        peerdns = "yes" if config['resolver']['peerdns'] == ifname else "no"
-        default = "yes" if config['routing']['default'] == ifname else "no"
+        if config['resolver']['peerdns'] == ifname:
+            warning = "" if ifconf['hw_addr'] and ifconf['enabled'] and ifconf['usedhcp'] else " *"
+            peerdns = "yes" + warning
+        else:
+            peerdns = "no"
+
+        if config['routing']['default'] == ifname:
+            warning = "" if ifconf['hw_addr'] and ifconf['enabled'] else " *"
+            default = "yes" + warning
+        else:
+            default = "no"
 
         gateway =  ifconf['gateway']
 
@@ -119,7 +128,7 @@ def EditNetworkIface(config, ifname):
             ("%-16s %s" % ("Enabled:", enabled), __SwitchIfaceEnabled),
             ("%-16s %s" % ("Use DHCP:", usedhcp), __SwitchIfaceUseDhcp),
             ("", 2),
-            ("%-16s %s" % ("Use DHCP DNS:", peerdns), __SwitchIfacePeerDns) if ifconf['usedhcp'] else ("", 21),
+            ("%-16s %s" % ("Use DHCP DNS:", peerdns), __SwitchIfacePeerDns),
             ("", 3),
             ("%-16s %-15s" % ("IP addr:", ip_addr), __EditIfaceIpAddress),
             ("%-16s %-15s" % ("Netmask:", netmask), __EditIfaceIpNetwork),
