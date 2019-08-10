@@ -68,18 +68,11 @@ class NetworkConfiguration(object):
         self.routes[ifname].clear()
 
     @_modify_settings
-    def AddIface(self, ifname, defconf=False):
+    def AddIface(self, ifname):
         self.ifcfgs[ifname] = env.cfgopen(_IFCFG_PATH + ifname, readonly=False, delempty=True)
         self.ifcfgs[ifname].update(self.DEFLOOP_NETCONF if self.IsLoopback(ifname) else self.DEFAULT_NETCONF)
         self.ifcfgs[ifname]['DEVICE'] = ifname
-        self.ifcfgs[ifname]['DEFCONF'] = 'yes' if defconf else 'no'
         self.routes[ifname] = env.cfgopen(_ROUTE_PATH + ifname, readonly=False, delempty=True)
-
-    def GetIfaceDefConf(self, ifname):
-        if self.IsLoopback(ifname):
-            return False
-        defconf = self.ifcfgs[ifname]['DEFCONF'] or 'no'
-        return defconf.lower() == 'yes'
 
     def GetIfaceDevName(self, ifname):
         return self.ifcfgs[ifname]['DEVICE'] or ifname
