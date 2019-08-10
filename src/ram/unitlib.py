@@ -18,15 +18,19 @@ def Params():
     return ram.param()
 
 
+def IsSame(namepath):
+    try:
+        thisunit = ram.locator()
+        return thisunit == namepath
+    except LookupError:
+        return False
+
+
 def Config(namepath=None):
     if namepath:
         namepath = ram.locator(namepath)
 
-    try:
-        thisunit = ram.locator()
-        readonly = thisunit != namepath
-    except LookupError:
-        readonly = True
+    readonly = not IsSame(namepath)
 
     return Storage.conf(namepath)
 
@@ -118,7 +122,10 @@ class LocatorLoader(ImpLoader):
     def load_module(self, fullname):
         module = ImpLoader.load_module(self, fullname)
         if not isinstance(module, UnitLibModule):
-            config = ram.query(self.fullname)
+            if not IsSame(self.fullname):
+                config = ram.query(self.fullname)
+            else:
+                config = None
             module = UnitLibModule(module, config)
         if not hasattr(module, '__path__'):
             setattr(module, '__path__', [])
