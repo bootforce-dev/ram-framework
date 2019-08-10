@@ -134,7 +134,12 @@ def ModifyPeerDnsDevice(config, propose, show_confirm=True):
         if not _ifconf:
             return ram.widgets.ShowError(
                 propose,
-                "Device is not found!",
+                "Device is not configured!",
+            )
+        elif _ifconf['defconf']:
+            return ram.widgets.ShowError(
+                propose,
+                "Device is not configured!",
             )
 
         if not _ifconf['hw_addr']:

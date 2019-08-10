@@ -6,11 +6,11 @@ import ram.widgets
 
 with ram.context(__name__):
     from ..utils import ValidateEmptyOrIpV4, ValidateIpV4
-    from ..network.utils import ListEnabledDevices
+    from ..network.utils import ListGatewayDevices
 
 
 def SwitchGatewayDevice(config, delta):
-    devices = ListEnabledDevices(config['ifconfig'])
+    devices = ListGatewayDevices(config['ifconfig'])
     current = config['routing']['default'] or "no"
     options = ["no"] + devices[:]
 
@@ -20,7 +20,7 @@ def SwitchGatewayDevice(config, delta):
 
 
 def SelectGatewayDevice(config, ensure=False):
-    devices = ListEnabledDevices(config['ifconfig'])
+    devices = ListGatewayDevices(config['ifconfig'])
     current = config['routing']['default'] or "no"
     options = ["no"] + devices[:]
 
@@ -133,7 +133,12 @@ def ModifyGatewayDevice(config, propose, show_confirm=True, edit_address=False):
         if not _ifconf:
             return ram.widgets.ShowError(
                 propose,
-                "Device is not found!",
+                "Device is not configured!",
+            )
+        elif _ifconf['defconf']:
+            return ram.widgets.ShowError(
+                propose,
+                "Device is not configured!",
             )
 
         if not _ifconf['hw_addr']:
