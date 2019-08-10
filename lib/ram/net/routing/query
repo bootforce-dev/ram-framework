@@ -4,7 +4,7 @@ import ram.symbols
 import ram.context
 
 with ram.context(__name__):
-    from ..network.utils import ListGatewayDevices
+    from .utils import ListGatewayDevices
 
 if __name__ == '__main__':
     config = ram.query('net.network')
