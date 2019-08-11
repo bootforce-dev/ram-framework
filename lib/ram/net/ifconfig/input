@@ -9,7 +9,7 @@ with ram.context(__name__):
     from net.utils import ValidateEmptyOrIpV4
 
     from ..resolver.entry import ModifyPeerDnsDevice
-    from ..resolver.entry import EditIfaceDnsServers
+    from ..resolver.entry import RemovePeerDnsDevice
 
     from ..routing.entry import ModifyGatewayDevice
     from ..routing.entry import RemoveGatewayDevice
@@ -85,7 +85,7 @@ def EditNetworkIface(config, ifname):
         elif backup_peerdns and backup_peerdns != ifname:
             ModifyPeerDnsDevice(config, backup_peerdns, show_confirm=False)
         else:
-            EditIfaceDnsServers(config, edit_servers=False)
+            RemovePeerDnsDevice(config)
 
     def __SwitchIfaceDefault():
         if not config['routing']['default'] == ifname:

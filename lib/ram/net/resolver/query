@@ -4,7 +4,7 @@ import ram.context
 import ram.symbols
 
 with ram.context(__name__):
-    from ..network.utils import ListPeerDnsDevices
+    from .utils import ListPeerDnsDevices
 
 
 if __name__ == '__main__':
