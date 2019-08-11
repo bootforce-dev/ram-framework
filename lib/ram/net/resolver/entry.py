@@ -14,17 +14,17 @@ from ram.widgets import *
 
 def SwitchPeerDnsDevice(config, delta):
     devices = ListPeerDnsDevices(config['ifconfig'])
-    current = config['resolver']['peerdns']
+    ifname_ = config['resolver']['peerdns']
     options = [""] + sorted(devices)
 
     config['resolver']['peerdns'] = options[
-        (options.index(current) + delta) % len(options)
+        (options.index(ifname_) + delta) % len(options)
     ]
 
 
 def SelectPeerDnsDevice(config):
     devices = ListPeerDnsDevices(config['ifconfig'])
-    current = config['resolver']['peerdns']
+    ifname_ = config['resolver']['peerdns']
 
     options = [
         ("no", "")
@@ -36,29 +36,30 @@ def SelectPeerDnsDevice(config):
         "Obtain DNS addresses over DHCP?",
         "",
         options,
-        current=current
+        current=ifname_
     )
 
 
 def EnsurePeerDnsDevice(config):
-    current = config['resolver']['peerdns']
+    ifname_ = config['resolver']['peerdns']
 
-    if current:
-        _ifconf = config['ifconfig'][current]
-        iserror, warning = CheckPeerDnsDevice(_ifconf)
+    if ifname_:
+        ifconf_ = config['ifconfig'][ifname_]
+        iserror_, warning_ = CheckPeerDnsDevice(ifconf_)
 
-        if warning:
+        if warning_:
             if ram.widgets.AskViaButtons(
                 "Continue with device to obtain DNS addresses?",
-                "Current interface to obtain DNS configuration via DHCP:\n\n\t%s\n\n"
-                "%s\n\n"
+                "Current interface to obtain DNS configuration via DHCP:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
                 "Would you like to select another device?\n" % (
-                    current, warning
+                    ifname_, warning_
                 ),
-                "Select device ...", "Keep `%s`" % current
+                "Select device ...", "Keep `%s`" % ifname_
             ):
                 SelectPeerDnsDevice(config)
-            elif iserror:
+            elif iserror_:
                 return False
 
     return True
@@ -148,13 +149,21 @@ def RunDnsConfigurationMenu(config, wizard):
 
 
 def RemovePeerDnsDevice(config, show_confirm=True, edit_address=False):
-    current = config['resolver']['peerdns']
+    ifname_ = config['resolver']['peerdns']
 
-    if current and show_confirm:
-        if not ram.widgets.AskViaButtons(
+    if show_confirm:
+        if ifname_:
+            ifconf_ = config['ifconfig'][ifname_]
+            iserror_, warning_ = CheckPeerDnsDevice(ifconf_)
+
+            if not ram.widgets.AskViaButtons(
                 "Use static configuration?",
-                "Current interface to obtain DNS configuration via DHCP:\n\n\t%s\n\n"
-                "Would you like to use static configuration?\n" % current
+                "Current interface to obtain DNS configuration via DHCP:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
+                "Would you like to use static configuration?\n" % (
+                    ifname_, warning_
+                )
             ):
                 return
 
@@ -164,48 +173,57 @@ def RemovePeerDnsDevice(config, show_confirm=True, edit_address=False):
         EditIfaceDnsServers(config)
 
 
-def ModifyPeerDnsDevice(config, propose, show_confirm=True):
-    current = config['resolver']['peerdns']
-    _ifconf = config['ifconfig'][propose]
+def ModifyPeerDnsDevice(config, ifname, show_confirm=True):
+    ifname_ = config['resolver']['peerdns']
+    ifconf = config['ifconfig'][ifname]
 
     if show_confirm:
-        iserror, warning = CheckPeerDnsDevice(_ifconf)
-        if current == propose and warning:
+        iserror, warning = CheckPeerDnsDevice(ifconf)
+
+        if ifname_ == ifname and warning:
             if not ram.widgets.AskViaButtons(
                 "Continue with device to obtain DNS addresses?",
-                "Current interface to obtain DNS configuration via DHCP:\n\n\t%s\n\n"
-                "%s\n\n"
+                "Current interface to obtain DNS configuration via DHCP:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
                 "Would you like to keep using device?\n" % (
-                    current, warning
+                    ifname, warning
                 ),
                 "Keep", "Reset"
             ):
-                propose = ""
+                ifname = ""
             elif iserror:
                 return
         elif iserror:
-            return ram.widgets.ShowError(propose, warning)
-        elif not current:
+            return ram.widgets.ShowError(ifname, warning)
+        elif not ifname_:
             if not ram.widgets.AskViaButtons(
                 "Use dynamic configuration?",
                 "Current DNS configuration is static.\n\n"
-                "Proposed interface to obtain DNS configuration via DHCP:\n\n\t%s\n\n"
-                "%s\n\n"
+                "Proposed interface to obtain DNS configuration via DHCP:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
                 "Would you like to continue?" % (
-                    propose, warning
+                    ifname, warning
                 )
             ):
                 return
         else:
+            ifconf_ = config['ifconfig'][ifname_]
+            iserror_, warning_ = CheckPeerDnsDevice(ifconf_)
+
             if not ram.widgets.AskViaButtons(
                 "Change device to obtain DNS addresses?",
-                "Current interface to obtain DNS configuration via DHCP:\n\n\t%s\n\n"
-                "Proposed interface to obtain DNS configuration via DHCP:\n\n\t%s\n\n"
-                "%s\n\n"
+                "Current interface to obtain DNS configuration via DHCP:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
+                "Proposed interface to obtain DNS configuration via DHCP:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
                 "Would you like to continue?" % (
-                    current, propose, warning
+                    ifname_, warning_, ifname, warning
                 )
             ):
                 return
 
-    config['resolver']['peerdns'] = propose
+    config['resolver']['peerdns'] = ifname

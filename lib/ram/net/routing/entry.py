@@ -13,17 +13,17 @@ with ram.context(__name__):
 
 def SwitchGatewayDevice(config, delta):
     devices = ListGatewayDevices(config['ifconfig'])
-    current = config['routing']['default']
+    ifname_ = config['routing']['default']
     options = [""] + sorted(devices)
 
     config['routing']['default'] = options[
-        (options.index(current) + delta) % len(options)
+        (options.index(ifname_) + delta) % len(options)
     ]
 
 
 def SelectGatewayDevice(config):
     devices = ListGatewayDevices(config['ifconfig'])
-    current = config['routing']['default']
+    ifname_ = config['routing']['default']
 
     options = [
         ("no", "")
@@ -35,29 +35,30 @@ def SelectGatewayDevice(config):
         "Select gateway device",
         "",
         options,
-        current=current
+        current=ifname_
     )
 
 
 def EnsureGatewayDevice(config):
-    current = config['routing']['default']
+    ifname_ = config['routing']['default']
 
-    if current:
-        _ifconf = config['ifconfig'][current]
-        iserror, warning = CheckGatewayDevice(_ifconf)
+    if ifname_:
+        ifconf_ = config['ifconfig'][ifname_]
+        iserror_, warning_ = CheckGatewayDevice(ifconf_)
 
-        if warning:
+        if warning_:
             if ram.widgets.AskViaButtons(
                 "Continue with device to use as default gateway?",
-                "Current default route interface:\n\n\t%s\n\n"
-                "%s\n\n"
+                "Current default route interface:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
                 "Would you like to select another device?\n" % (
-                    current, warning
+                    ifname_, warning_
                 ),
-                "Select device ...", "Keep `%s`" % current
+                "Select device ...", "Keep `%s`" % ifname_
             ):
                 SelectGatewayDevice(config)
-            elif iserror:
+            elif iserror_:
                 return False
 
     return True
@@ -134,65 +135,81 @@ def RoutesConfigurationMenu(config, wizard):
 
 
 def RemoveGatewayDevice(config, show_confirm=True):
-    current = config['routing']['default']
+    ifname_ = config['routing']['default']
 
-    if current and show_confirm:
-        if config['ifconfig'][current]:
+    if show_confirm:
+        if ifname_:
+            ifconf_ = config['ifconfig'][ifname_]
+            iserror_, warning_ = CheckGatewayDevice(ifconf_)
+
             if not ram.widgets.AskViaButtons(
                 "Remove device to use as default gateway?",
-                "Current default route interface:\n\n\t%s\n\n"
-                "Would you like to reset default route interface?" % current
+                "Current default route interface:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
+                "Would you like to reset default route interface?" % (
+                    ifname_, warning_
+                )
             ):
                 return
 
     config['routing']['default'] = ""
 
 
-def ModifyGatewayDevice(config, propose, show_confirm=True, edit_address=False):
-    current = config['routing']['default']
-    _ifconf = config['ifconfig'][propose]
+def ModifyGatewayDevice(config, ifname, show_confirm=True, edit_address=False):
+    ifname_ = config['routing']['default']
+    ifconf = config['ifconfig'][ifname]
 
     if show_confirm:
-        iserror, warning = CheckGatewayDevice(_ifconf)
-        if current == propose and warning:
+        iserror, warning = CheckGatewayDevice(ifconf)
+
+        if ifname_ == ifname and warning:
             if not ram.widgets.AskViaButtons(
                 "Continue with device to use as default gateway?",
-                "Current default route interface:\n\n\t%s\n\n"
-                "%s\n\n"
+                "Current default route interface:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
                 "Would you like to keep using device?\n" % (
-                    current, warning
+                    ifname, warning
                 ),
                 "Keep", "Reset"
             ):
-                propose = ""
+                ifname = ""
             elif iserror:
                 return
         elif iserror:
-            return ram.widgets.ShowError(propose, warning)
-        elif not current:
+            return ram.widgets.ShowError(ifname, warning)
+        elif not ifname_:
             if not ram.widgets.AskViaButtons(
                 "Change device to use as default gateway?",
                 "Current default route interface is not set.\n\n"
-                "Proposed default route interface:\n\n\t%s\n\n"
-                "%s\n\n"
+                "Proposed default route interface:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
                 "Would you like to continue?" % (
-                    propose, warning
+                    ifname, warning
                 )
             ):
                 return
         else:
+            ifconf_ = config['ifconfig'][ifname_]
+            iserror_, warning_ = CheckGatewayDevice(ifconf_)
+
             if not ram.widgets.AskViaButtons(
                 "Change device to use as default gateway?",
-                "Current default route interface:\n\n\t%s\n\n"
-                "Proposed default route interface:\n\n\t%s\n\n"
-                "%s\n\n"
+                "Current default route interface:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
+                "Proposed default route interface:\n\n"
+                "  %s\n\n"
+                "  %s\n\n"
                 "Would you like to continue?" % (
-                    current, propose, warning
+                    ifname_, warning_, ifname, warning
                 )
             ):
                 return
 
-    config['routing']['default'] = propose
+    config['routing']['default'] = ifname
 
-    if propose and edit_address:
+    if ifname and edit_address:
         EditGatewayAddress(config, config['routing']['default'])
