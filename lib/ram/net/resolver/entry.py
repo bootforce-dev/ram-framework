@@ -6,7 +6,6 @@ import ram.widgets
 
 with ram.context(__name__):
     from ..utils import ValidateDomainList, ValidateEmptyOrIpV4
-    from ..network.utils import ListPresentDevices
     from .utils import ListPeerDnsDevices
     from .utils import CheckPeerDnsDevice
 
@@ -14,9 +13,9 @@ from ram.widgets import *
 
 
 def SwitchPeerDnsDevice(config, delta):
-    present = ListPresentDevices(config['ifconfig'])
+    devices = ListPeerDnsDevices(config['ifconfig'])
     current = config['resolver']['peerdns']
-    options = [""] + present[:]
+    options = [""] + sorted(devices)
 
     config['resolver']['peerdns'] = options[
         (options.index(current) + delta) % len(options)
@@ -24,14 +23,13 @@ def SwitchPeerDnsDevice(config, delta):
 
 
 def SelectPeerDnsDevice(config):
-    present = ListPresentDevices(config['ifconfig'])
     devices = ListPeerDnsDevices(config['ifconfig'])
     current = config['resolver']['peerdns']
 
     options = [
         ("no", "")
     ] + [
-        (_ + ("" if _ in devices else " *"), _) for _ in present
+        (_ + (" *" if devices[_] else ""), _) for _ in sorted(devices)
     ]
 
     config['resolver']['peerdns'] = ram.widgets.SingleChoice(

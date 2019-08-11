@@ -1,12 +1,15 @@
 #!/usr/bin/python
 
+def IterGatewayDevices(config):
+    for ifname in config:
+        iserror, warning = CheckGatewayDevice(config[ifname])
+        if iserror:
+            continue
+        else:
+            yield (ifname, warning)
+
 def ListGatewayDevices(config):
-    return list(sorted(
-        ifname for ifname in config
-        if not config[ifname]['defconf']
-        and config[ifname]['hw_addr']
-        and config[ifname]['enabled']
-    ))
+    return dict(IterGatewayDevices(config))
 
 def CheckGatewayDevice(_ifconf):
     if not _ifconf or _ifconf['defconf']:

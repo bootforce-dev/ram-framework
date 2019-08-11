@@ -1,13 +1,15 @@
 #!/usr/bin/python
 
+def IterPeerDnsDevices(config):
+    for ifname in config:
+        iserror, warning = CheckPeerDnsDevice(config[ifname])
+        if iserror:
+            continue
+        else:
+            yield (ifname, warning)
+
 def ListPeerDnsDevices(config):
-    return list(sorted(
-        ifname for ifname in config
-        if not config[ifname]['defconf']
-        and config[ifname]['hw_addr']
-        and config[ifname]['enabled']
-        and config[ifname]['usedhcp']
-    ))
+    return dict(IterPeerDnsDevices(config))
 
 def CheckPeerDnsDevice(_ifconf):
     if not _ifconf or _ifconf['defconf']:

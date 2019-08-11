@@ -6,16 +6,15 @@ import ram.widgets
 
 with ram.context(__name__):
     from ..utils import ValidateEmptyOrIpV4, ValidateIpV4
-    from ..network.utils import ListPresentDevices
     from .utils import ListGatewayDevices
     from .utils import CheckGatewayDevice
     from .utils import ShownGatewayIpAddr
 
 
 def SwitchGatewayDevice(config, delta):
-    present = ListPresentDevices(config['ifconfig'])
+    devices = ListGatewayDevices(config['ifconfig'])
     current = config['routing']['default']
-    options = [""] + present[:]
+    options = [""] + sorted(devices)
 
     config['routing']['default'] = options[
         (options.index(current) + delta) % len(options)
@@ -23,14 +22,13 @@ def SwitchGatewayDevice(config, delta):
 
 
 def SelectGatewayDevice(config):
-    present = ListPresentDevices(config['ifconfig'])
     devices = ListGatewayDevices(config['ifconfig'])
     current = config['routing']['default']
 
     options = [
         ("no", "")
     ] + [
-        (_ + ("" if _ in devices else " *"), _) for _ in present
+        (_ + (" *" if devices[_] else ""), _) for _ in sorted(devices)
     ]
 
     config['routing']['default'] = ram.widgets.SingleChoice(
