@@ -30,7 +30,7 @@ def SelectGatewayDevice(config):
     options = [
         ("no", "")
     ] + [
-        ("%s%s" % (_, "" if _ in devices else " *"), _) for _ in present
+        (_ + ("" if _ in devices else " *"), _) for _ in present
     ]
 
     config['routing']['default'] = ram.widgets.SingleChoice(
