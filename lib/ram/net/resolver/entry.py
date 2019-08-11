@@ -79,9 +79,6 @@ def EditIfaceDnsServers(config):
         ]
     )
 
-    if not pri_dns and sec_dns:
-        pri_dns, sec_dns = sec_dns, pri_dns
-
     resolv['domains'] = domains
     resolv['pri_dns'] = pri_dns
     resolv['sec_dns'] = sec_dns
@@ -106,9 +103,6 @@ def RunDnsConfigurationMenu(config, wizard):
 
     def __EditDomainSearchList(action):
         RemovePeerDnsDevice(config, edit_address=True)
-
-    if not resolv['pri_dns'] and resolv['sec_dns']:
-        resolv['pri_dns'], resolv['sec_dns'] = resolv['sec_dns'], resolv['pri_dns']
 
     def __MkDnsConfigurationMenu():
         peerdns = resolv['peerdns']
