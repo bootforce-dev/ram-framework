@@ -88,7 +88,7 @@ def EditNetworkIface(config, ifname):
         if not config['resolver']['peerdns'] == ifname:
             ModifyPeerDnsDevice(config, ifname)
         elif backup_peerdns and backup_peerdns != ifname:
-            ModifyPeerDnsDevice(config, backup_peerdns, show_confirm=False)
+            ModifyPeerDnsDevice(config, backup_peerdns)
         else:
             RemovePeerDnsDevice(config)
 
@@ -96,7 +96,7 @@ def EditNetworkIface(config, ifname):
         if not config['routing']['default'] == ifname:
             ModifyGatewayDevice(config, ifname)
         elif backup_default and backup_default != ifname:
-            ModifyGatewayDevice(config, backup_default, show_confirm=False)
+            ModifyGatewayDevice(config, backup_default)
         else:
             RemoveGatewayDevice(config)
 
@@ -161,16 +161,14 @@ def AddNetworkIfaceNow(config, ifname):
         config['resolver']['peerdns'] = ifname
 
 
-def AddNetworkIface(config, ifname, device=None):
+def AddNetworkIface(config, ifname):
     if ram.widgets.AskViaButtons(
         "Unconfigured interface `%s`" % ifname,
         "Interface `%s` is found but not configured.\n\n"
         "Would you like to initialize it now?" % ifname
     ):
         AddNetworkIfaceNow(config, ifname)
-
-        if device:
-            EditNetworkIface(config, ifname)
+        EditNetworkIface(config, ifname)
 
 
 def DelNetworkIfaceNow(config, ifname):
@@ -187,8 +185,8 @@ def DelNetworkIfaceNow(config, ifname):
         config['resolver']['peerdns'] = ""
 
 
-def DelNetworkIface(config, ifname, device=None):
-    if not device and ram.widgets.AskViaButtons(
+def DelNetworkIface(config, ifname):
+    if ram.widgets.AskViaButtons(
         "Missing interface `%s`" % ifname,
         "Interface `%s` is configured but not found.\n\n"
         "Would you like to delete it permanently?" % ifname
@@ -198,13 +196,15 @@ def DelNetworkIface(config, ifname, device=None):
         EditNetworkIface(config, ifname)
 
 
-def ActNetworkIface(config, ifname, device=None):
+def ActNetworkIface(config, ifname):
     ifconf = config['ifconfig'][ifname]
 
-    if not ifconf['hw_addr']:
-        DelNetworkIface(config, ifname, device)
+    if not ifconf:
+        ram.widgets.ShowError(ifname, "ERROR: Device is not configured!")
+    elif not ifconf['hw_addr']:
+        DelNetworkIface(config, ifname)
     elif ifconf['defconf']:
-        AddNetworkIface(config, ifname, device)
+        AddNetworkIface(config, ifname)
     else:
         EditNetworkIface(config, ifname)
 
@@ -274,9 +274,7 @@ if __name__ == '__main__':
                     "No present network interfaces found!\n"
                 )
 
-    elif params.device in config['ifconfig']:
-        ActNetworkIface(config, params.device, params.device)
-    elif params.device is not None:
-        raise SystemExit("No suitable device found on the machine.")
+    elif not params.device == "no":
+        ActNetworkIface(config, params.device)
 
     ram.store('net.network', input=config)
