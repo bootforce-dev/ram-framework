@@ -46,20 +46,21 @@ def EnsureGatewayDevice(config):
         ifconf_ = config['ifconfig'][ifname_]
         iserror_, warning_ = CheckGatewayDevice(ifconf_)
 
-        if warning_:
-            if ram.widgets.AskViaButtons(
-                "Continue with device to use as default gateway?",
-                "Current default route interface:\n\n"
-                "  %s\n\n"
-                "  %s\n\n"
-                "Would you like to select another device?\n" % (
-                    ifname_, warning_
-                ),
-                "Select device ...", "Keep `%s`" % ifname_
-            ):
-                SelectGatewayDevice(config)
-            elif iserror_:
-                return False
+        if not warning_:
+            pass
+        elif ram.widgets.AskViaButtons(
+            "Continue with device to use as default gateway?",
+            "Current default route interface:\n\n"
+            "  %s\n\n"
+            "  %s\n\n"
+            "Would you like to select another device?\n" % (
+                ifname_, warning_
+            ),
+            "Select device ...", "Keep `%s`" % ifname_
+        ):
+            SelectGatewayDevice(config)
+        elif iserror_:
+            return False
 
     return True
 
@@ -147,7 +148,8 @@ def RemoveGatewayDevice(config, show_confirm=True):
                 "Current default route interface:\n\n"
                 "  %s\n\n"
                 "  %s\n\n"
-                "Would you like to reset default route interface?" % (
+                "Proposed to reset default route interface.\n\n"
+                "Would you like to continue?" % (
                     ifname_, warning_
                 )
             ):
@@ -163,8 +165,10 @@ def ModifyGatewayDevice(config, ifname, show_confirm=True, edit_address=False):
     if show_confirm:
         iserror, warning = CheckGatewayDevice(ifconf)
 
-        if ifname_ == ifname and warning:
-            if not ram.widgets.AskViaButtons(
+        if ifname_ == ifname:
+            if not warning:
+                pass
+            elif not ram.widgets.AskViaButtons(
                 "Continue with device to use as default gateway?",
                 "Current default route interface:\n\n"
                 "  %s\n\n"

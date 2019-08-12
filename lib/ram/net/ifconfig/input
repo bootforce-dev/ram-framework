@@ -88,7 +88,7 @@ def EditNetworkIface(config, ifname):
         if not config['resolver']['peerdns'] == ifname:
             ModifyPeerDnsDevice(config, ifname)
         elif backup_peerdns and backup_peerdns != ifname:
-            ModifyPeerDnsDevice(config, backup_peerdns, show_confirm=False)
+            ModifyPeerDnsDevice(config, backup_peerdns)
         else:
             RemovePeerDnsDevice(config)
 
@@ -96,7 +96,7 @@ def EditNetworkIface(config, ifname):
         if not config['routing']['default'] == ifname:
             ModifyGatewayDevice(config, ifname)
         elif backup_default and backup_default != ifname:
-            ModifyGatewayDevice(config, backup_default, show_confirm=False)
+            ModifyGatewayDevice(config, backup_default)
         else:
             RemoveGatewayDevice(config)
 
@@ -274,7 +274,7 @@ if __name__ == '__main__':
                     "No present network interfaces found!\n"
                 )
 
-    elif params.device != "no":
+    elif not params.device == "no":
         ActNetworkIface(config, params.device)
 
     ram.store('net.network', input=config)

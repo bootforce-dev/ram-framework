@@ -47,20 +47,21 @@ def EnsurePeerDnsDevice(config):
         ifconf_ = config['ifconfig'][ifname_]
         iserror_, warning_ = CheckPeerDnsDevice(ifconf_)
 
-        if warning_:
-            if ram.widgets.AskViaButtons(
-                "Continue with device to obtain DNS addresses?",
-                "Current interface to obtain DNS configuration via DHCP:\n\n"
-                "  %s\n\n"
-                "  %s\n\n"
-                "Would you like to select another device?\n" % (
-                    ifname_, warning_
-                ),
-                "Select device ...", "Keep `%s`" % ifname_
-            ):
-                SelectPeerDnsDevice(config)
-            elif iserror_:
-                return False
+        if not warning_:
+            pass
+        elif ram.widgets.AskViaButtons(
+            "Continue with device to obtain DNS addresses?",
+            "Current interface to obtain DNS configuration:\n\n"
+            "  %s\n\n"
+            "  %s\n\n"
+            "Would you like to select another device?\n" % (
+                ifname_, warning_
+            ),
+            "Select device ...", "Keep `%s`" % ifname_
+        ):
+            SelectPeerDnsDevice(config)
+        elif iserror_:
+            return False
 
     return True
 
@@ -152,10 +153,11 @@ def RemovePeerDnsDevice(config, show_confirm=True, edit_address=False):
 
             if not ram.widgets.AskViaButtons(
                 "Use static configuration?",
-                "Current interface to obtain DNS configuration via DHCP:\n\n"
+                "Current interface to obtain DNS configuration:\n\n"
                 "  %s\n\n"
                 "  %s\n\n"
-                "Would you like to use static configuration?\n" % (
+                "Proposed to use static DNS confiruation.\n\n"
+                "Would you like to continue?\n" % (
                     ifname_, warning_
                 )
             ):
@@ -174,10 +176,12 @@ def ModifyPeerDnsDevice(config, ifname, show_confirm=True):
     if show_confirm:
         iserror, warning = CheckPeerDnsDevice(ifconf)
 
-        if ifname_ == ifname and warning:
-            if not ram.widgets.AskViaButtons(
+        if ifname_ == ifname:
+            if not warning:
+                pass
+            elif not ram.widgets.AskViaButtons(
                 "Continue with device to obtain DNS addresses?",
-                "Current interface to obtain DNS configuration via DHCP:\n\n"
+                "Current interface to obtain DNS configuration:\n\n"
                 "  %s\n\n"
                 "  %s\n\n"
                 "Would you like to keep using device?\n" % (
@@ -194,7 +198,7 @@ def ModifyPeerDnsDevice(config, ifname, show_confirm=True):
             if not ram.widgets.AskViaButtons(
                 "Use dynamic configuration?",
                 "Current DNS configuration is static.\n\n"
-                "Proposed interface to obtain DNS configuration via DHCP:\n\n"
+                "Proposed interface to obtain DNS configuration:\n\n"
                 "  %s\n\n"
                 "  %s\n\n"
                 "Would you like to continue?" % (
@@ -208,10 +212,10 @@ def ModifyPeerDnsDevice(config, ifname, show_confirm=True):
 
             if not ram.widgets.AskViaButtons(
                 "Change device to obtain DNS addresses?",
-                "Current interface to obtain DNS configuration via DHCP:\n\n"
+                "Current interface to obtain DNS configuration:\n\n"
                 "  %s\n\n"
                 "  %s\n\n"
-                "Proposed interface to obtain DNS configuration via DHCP:\n\n"
+                "Proposed interface to obtain DNS configuration:\n\n"
                 "  %s\n\n"
                 "  %s\n\n"
                 "Would you like to continue?" % (
