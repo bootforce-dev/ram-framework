@@ -13,6 +13,29 @@ import ram
 from ram.process import ProcessError
 
 
+def FuncEntry(function, *args, **kwargs):
+    pause = kwargs.pop('pause', True)
+
+    def __fn_func(function=function, args=args, pause=pause):
+        try:
+            return function(*args)
+        except Exception as e:
+            print
+            print "Error at:"
+            print "\t%s: %s" % ('func', function)
+            print "\targs: %s" % ' '.join(args)
+            print
+            print "\twith: %s" % str(e)
+            print
+            if pause:
+                print "Press ENTER to continue ..."
+                raw_input()
+            else:
+                raise SystemExit(*e.args)
+
+    return __fn_func
+
+
 def UnitEntry(namepath, *args, **kwargs):
     input = kwargs.pop('input', True)
     apply = kwargs.pop('apply', True)
