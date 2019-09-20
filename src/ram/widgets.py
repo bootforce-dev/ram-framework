@@ -152,8 +152,10 @@ def RunEntry(header, text, entries, initContext=None, allowCancel=True, supplySa
             return saved_values
 
 
-def RunList(entries):
+def RunList(entries, **kwargs):
     entries = entries() if callable(entries) else entries
+    label = kwargs.pop('label', 'unit')
 
-    for entry in entries:
-        entry()
+    for _index, _entry in enumerate(entries, 1):
+        _label = '%s-%s' % (label, _index)
+        _entry(local=kwargs, label=_label)
