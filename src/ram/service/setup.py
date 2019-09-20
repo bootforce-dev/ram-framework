@@ -6,9 +6,6 @@ from ram.classes import DumbResults
 
 import ram.options
 
-_apply = ram.options['apply']
-
-
 
 class __api__(UnitService):
     """(deprecated) same as input service
@@ -24,6 +21,8 @@ class __api__(UnitService):
     _results = DumbResults
 
     def __call__(self, location, *args, **kwargs):
+        _apply = kwargs.pop('apply', ram.options['apply'])
+
         ram.input(str(location), *args, **kwargs)
         if _apply:
             ram.apply(str(location))
