@@ -41,7 +41,7 @@ def UnitEntry(namepath, *args, **kwargs):
     apply = kwargs.pop('apply', True)
     pause = kwargs.pop('pause', True)
 
-    def __fn_unit(namepath=namepath, args=args, pause=pause, apply=apply, input=input):
+    def __fn_unit(**kwargs):
         try:
             mode = 'input'
             if input:
