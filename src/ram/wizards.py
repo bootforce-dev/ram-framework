@@ -2,6 +2,8 @@
 
 import ram.process
 
+from ram.watches import press_key
+
 from traceback import print_exc
 
 
@@ -16,27 +18,32 @@ class Unit(object):
         local.update(**kwargs)
 
         debug = local.pop('debug', None)
-        debug = int(debug) if not debug is None else -1
+        debug = int(debug) if debug is not None else -1
 
         pause = local.pop('pause', None)
-        pause = int(pause) if not pause is None else -1
+        pause = int(pause) if pause is not None else -1
 
         fatal = local.pop('fatal', False)
 
-        delay = local.pop('delay', False)
+        delay = local.pop('delay', None)
+        delay = int(delay) if delay is not None else 0
+
         shell = local.pop('shell', False)
+        shell = (
+            shell if isinstance(shell, basestring) else
+            '/bin/sh' if shell else None
+        )
 
         label = local.pop('label', None)
         title = local.pop('title', None)
 
+        e = None
         try:
             for _step in self.steps:
                 _step()
         except Exception as e:
             print
             print_exc()
-        else:
-            e = None
 
         if not debug:
             point = None
@@ -51,16 +58,26 @@ class Unit(object):
 
         if point:
             print
-            print "%s at:" % (point,)
+            print "%s at:" % point
             if title is not None:
-                print "\ttitle: %s" % (title,)
+                print "\ttitle: %s" % title
             if label is not None:
-                print "\tlabel: %s" % (label,)
+                print "\tlabel: %s" % label
             print
 
         if (pause and e) or (pause > 0):
-            print "Press ENTER to continue ..."
-            raw_input()
+            try:
+                press_key(timeout=abs(delay))
+            except OverflowError:
+                if delay > 0:
+                    pass
+                else:
+                    raise
+            except KeyboardInterrupt:
+                if shell:
+                    ram.process.launch(shell)
+                else:
+                    raise
 
         if (fatal and e):
             raise e

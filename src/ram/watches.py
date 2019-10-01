@@ -284,3 +284,41 @@ def watch_dir(dirname, match=None, files=True, dirs=False, rec=False):
         track_dir(dirname, match, files, dirs, rec),
         name='dir'
     )
+
+
+def press_key(message=None, timeout=0):
+    import sys
+
+    def _drain():
+        while select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
+            sys.stdin.read(1)
+
+    def _write(s):
+        sys.stdout.write(s)
+        sys.stdout.flush()
+
+    if message is None:
+        message = "Press ENTER to continue"
+
+    try:
+        _drain()
+
+        _write(message)
+
+        if timeout:
+            _write(':')
+        else:
+            _write(' ... ')
+
+        waitfor = 0
+        while not timeout or waitfor < abs(timeout):
+            if select.select([sys.stdin], [], [], 1) == ([sys.stdin], [], []):
+                break
+            if timeout:
+                _write('.')
+                waitfor += 1
+        else:
+            raise OverflowError(timeout)
+    finally:
+        _write('\n')
+        _drain()
