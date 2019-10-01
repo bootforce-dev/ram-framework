@@ -8,8 +8,6 @@ import multiprocessing as mp
 
 from contextlib import contextmanager
 
-import pyinotify
-
 from ram.process import running_ps
 from ram.process import output
 from ram.process import _quote_cmd
@@ -214,25 +212,26 @@ def watch_timer(timeout=None):
     )
 
 
-class InotifyProcessEventQueue(pyinotify.ProcessEvent):
-    def __init__(self):
-        self.queue = []
-
-    def __iter__(self):
-        while self.queue:
-            yield self.queue.pop(0)
-
-    def process_IN_CREATE(self, event):
-        self.queue.append(event)
-
-    def process_IN_DELETE(self, event):
-        self.queue.append(event)
-
-    def process_IN_MOVED(self, event):
-        self.queue.append(event)
-
-
 def track_dir(dirname, match=None, files=True, dirs=False, rec=False):
+    import pyinotify
+
+    class InotifyProcessEventQueue(pyinotify.ProcessEvent):
+        def __init__(self):
+            self.queue = []
+
+        def __iter__(self):
+            while self.queue:
+                yield self.queue.pop(0)
+
+        def process_IN_CREATE(self, event):
+            self.queue.append(event)
+
+        def process_IN_DELETE(self, event):
+            self.queue.append(event)
+
+        def process_IN_MOVED(self, event):
+            self.queue.append(event)
+
     wm = pyinotify.WatchManager()
     mask = (
         pyinotify.IN_DELETE |
