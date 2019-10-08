@@ -15,7 +15,7 @@ if __name__ == '__main__':
         ram.widgets.RunList(
             [
                 UnitEntry('net.hostname', 'forced', 'erased', isfqdn, apply=False),
-                UnitEntry('net.ifconfig', 'wizard', apply=False),
+                UnitEntry('net.ifconfig', 'wizard', apply=False, pause=False),
                 UnitEntry('net.routing', 'wizard', apply=False),
                 UnitEntry('net.resolver', 'wizard', apply=False),
             ]
