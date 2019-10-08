@@ -167,20 +167,14 @@ def watch_iterable(iterable, name=None):
         p.join()
 
 
-_SLEEP_TIMEOUT = 1000.0
-
-
 def track_output(command, *args, **kwargs):
     timeout = kwargs.pop('timeout', None)
-    if timeout is None:
-        timeout = _SLEEP_TIMEOUT
     _was_output = None
-    while True:
+    for _ in track_timer(timeout):
         _now_output = output(command, *args, **kwargs)
         if _now_output != _was_output:
             _was_output = _now_output
             yield _now_output
-        time.sleep(timeout / _SLEEP_TIMEOUT)
 
 
 def watch_output(command, *args, **kwargs):
@@ -193,16 +187,17 @@ def watch_output(command, *args, **kwargs):
 
 def track_timer(timeout=None):
     if timeout is None:
-        _timeout = 1.0
-    else:
-        _timeout = timeout / _SLEEP_TIMEOUT
+        timeout = 1.0
     prev_time = time.time()
     while True:
-        next_time = prev_time + _timeout
-        sleep_for = next_time - time.time()
-        time.sleep(sleep_for % _timeout)
-        prev_time = next_time
         yield time.time()
+        next_time = prev_time + timeout
+        sleep_for = next_time - time.time()
+        if sleep_for > 0.0:
+            time.sleep(sleep_for % timeout)
+            prev_time = next_time
+        else:
+            prev_time = next_time - sleep_for
 
 
 def watch_timer(timeout=None):
