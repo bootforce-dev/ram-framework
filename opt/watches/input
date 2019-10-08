@@ -82,11 +82,28 @@ if __name__ == '__main__':
     #            watches={_:True for _ in w}
     #        )
 
+    def __RunWatching():
+
+        with ram.watches.watch_output('date +%s') as watch:
+
+            output = [('...', 0)]
+
+            def _read_output(data, watch=watch):
+                output[0] = (data, 0)
+
+            ram.widgets.RunMenu(
+                "Watching",
+                lambda: output,
+                watches={
+                    watch: _read_output,
+                },
+            )
 
     ram.widgets.RunMenu(
         "Select scenario",
         [
             ("Multiple ...", __RunMultiple),
             ("Collects ...", __RunCollects),
+            ("Watching ...", __RunWatching),
         ]
     )
