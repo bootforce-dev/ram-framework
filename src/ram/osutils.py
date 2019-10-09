@@ -10,12 +10,6 @@ from tempfile import mkstemp, mkdtemp
 from contextlib import contextmanager
 
 
-def from_exception(message=None):
-    from sys import exc_info
-    exc_type, exc_val, exc_tb = exc_info()
-    raise exc_type, message if message is not None else exc_val, exc_tb
-
-
 @contextmanager
 def safe_tempfile(filename, copystat=True):
     dirname, basename = os.path.split(filename)
@@ -41,7 +35,7 @@ def safe_tempfile(filename, copystat=True):
         os.rename(tempname, filename)
     except BaseException as e:
         os.unlink(tempname)
-        raise from_exception(e)
+        raise
 
 
 @contextmanager
@@ -55,7 +49,7 @@ def safe_tempname(filename):
         os.rename(tempname, filename)
     except BaseException as e:
         TryUnlink(tempname)
-        raise from_exception(e)
+        raise
     finally:
         os.rmdir(temppath)
 
@@ -70,7 +64,7 @@ def safe_tempfifo(fifoname):
         yield tempname
     except BaseException as e:
         TryUnlink(tempname)
-        raise from_exception(e)
+        raise
     else:
         TryUnlink(tempname)
     finally:

@@ -3,8 +3,6 @@
 from functools import wraps
 from collections import MutableMapping
 
-from ram.osutils import from_exception
-
 
 # StringDict class is provided to serve access
 # to configuration storages where empty keys are
@@ -228,10 +226,10 @@ class ConfigOpener(object):
     def __call__(self, *args, **kwargs):
         try:
             return self.cfgopen(self.filepath, *args, **kwargs)
-        except IOError as err:
-            raise from_exception(
-                "Unable to open `%s` configuration: %s" % (self.filekey, err)
-            )
+        except IOError as e:
+            e.args = ("Unable to open `%s` configuration: %s" % (self.filekey, e),)
+            del e.filename, e.strerror, e.errno
+            raise
 
 
 if __name__ == '__main__':
