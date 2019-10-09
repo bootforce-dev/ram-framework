@@ -4,8 +4,6 @@ import ram.process
 
 from ram.watches import press_key
 
-from traceback import print_exc
-
 
 class Unit(object):
     def __init__(self, *steps, **kwargs):
@@ -42,6 +40,8 @@ class Unit(object):
             for _step in self.steps:
                 _step()
         except Exception as e:
+            from traceback import print_exc
+
             print
             print_exc()
 

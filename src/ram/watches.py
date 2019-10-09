@@ -126,22 +126,14 @@ class IterWatch(Watch):
         return self.ioproc.exitcode is None
 
     def update(self):
-        exc, obj, _tb = self.iopipe.recv()
-        if exc:
+        obj, _tb = self.iopipe.recv()
+        if _tb:
             self.ioproc.terminate()
+            _et = type(obj)
             _ev = str(obj) + _tb.rstrip()
-            raise exc(_ev)
+            raise _et(_ev)
         else:
             return obj
-
-
-def _process_exc():
-    from sys import exc_info
-    from traceback import format_exc
-
-    exc_type, exc_val, exc_tb = exc_info()
-    exc_proc = "Process: %s\n" % mp.current_process().name
-    return exc_type, exc_val, "\n" + exc_proc + format_exc()
 
 
 @contextmanager
@@ -151,9 +143,15 @@ def watch_iterable(iterable, name=None):
     def _wrap_iter(iterable=iterable, w_pipe=w_pipe):
         try:
             for index, obj in enumerate(iterable):
-                w_pipe.send((None, obj, None))
+                w_pipe.send((obj, None))
         except BaseException as exc:
-            w_pipe.send(_process_exc())
+            from traceback import format_exc
+            _tb = "\nProcess: %s\n%s" % (
+                mp.current_process().name,
+                format_exc(),
+            )
+
+            w_pipe.send((exc, _tb))
         finally:
             while True:
                 signal.pause()

@@ -156,7 +156,7 @@ def run(command, *args, **kwargs):
 def output(command, *args, **kwargs):
     status, output, errors = run(command, *args, **kwargs)
     if status:
-        raise RuntimeError(errors)
+        raise RuntimeError(str(status) + "\n" + errors)
     else:
         return output
 
