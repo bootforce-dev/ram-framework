@@ -99,11 +99,38 @@ if __name__ == '__main__':
                 },
             )
 
+    def __RunFinished():
+
+        def _sleepy_list():
+            import time
+
+            for _ in [1,2,3]:
+                yield _
+                time.sleep(1)
+
+
+        with ram.watches.watch_iterable(_sleepy_list()) as watch:
+
+            output = [('...', 0)]
+
+            def _read_output(data, watch=watch):
+                output[0] = (str(data or ''), 0)
+
+            ram.widgets.RunMenu(
+                "Finished",
+                lambda: output,
+                watches={
+                    watch: _read_output,
+                },
+            )
+
+
     ram.widgets.RunMenu(
         "Select scenario",
         [
             ("Multiple ...", __RunMultiple),
             ("Collects ...", __RunCollects),
             ("Watching ...", __RunWatching),
+            ("Finished ...", __RunFinished),
         ]
     )

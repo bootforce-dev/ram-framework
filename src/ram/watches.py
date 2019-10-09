@@ -3,7 +3,6 @@
 import os
 import time
 import select
-import signal
 import multiprocessing as mp
 
 from contextlib import contextmanager
@@ -121,14 +120,19 @@ class IterWatch(Watch):
     def __init__(self, iopipe, ioproc):
         super(IterWatch, self).__init__(iopipe)
         self.ioproc = ioproc
+        self.eofile = False
 
     def status(self):
-        return self.ioproc.exitcode is None
+        return not self.eofile
 
     def update(self):
-        obj, _tb = self.iopipe.recv()
+        try:
+            obj, _tb = self.iopipe.recv()
+        except EOFError:
+            self.eofile = True
+            return None
+
         if _tb:
-            self.ioproc.terminate()
             _et = type(obj)
             _ev = str(obj) + _tb.rstrip()
             raise _et(_ev)
@@ -140,9 +144,10 @@ class IterWatch(Watch):
 def watch_iterable(iterable, name=None):
     r_pipe, w_pipe = mp.Pipe(duplex=False)
 
-    def _wrap_iter(iterable=iterable, w_pipe=w_pipe):
+    def _wrap_iter():
+        r_pipe.close()
         try:
-            for index, obj in enumerate(iterable):
+            for obj in iterable:
                 w_pipe.send((obj, None))
         except BaseException as exc:
             from traceback import format_exc
@@ -152,13 +157,11 @@ def watch_iterable(iterable, name=None):
             )
 
             w_pipe.send((exc, _tb))
-        finally:
-            while True:
-                signal.pause()
 
     p = mp.Process(target=_wrap_iter, name=name)
     try:
         p.start()
+        w_pipe.close()
         yield IterWatch(r_pipe, p)
     finally:
         p.terminate()

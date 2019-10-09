@@ -171,16 +171,17 @@ def running_ps(command, *args, **kwargs):
         yield wrap(proc)
     except Exception:
         wait = False
-
-    if wait:
-        code = proc.wait()
-        if code:
-            raise ProcessError(code)
-    else:
-        try:
-            proc.kill()
-        except OSError:
-            pass
+        raise
+    finally:
+        if wait:
+            code = proc.wait()
+            if code:
+                raise ProcessError(code)
+        else:
+            try:
+                proc.kill()
+            except OSError:
+                pass
 
 
 if __name__ == '__main__':
