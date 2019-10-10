@@ -158,4 +158,6 @@ def RunList(entries, **kwargs):
 
     for _index, _entry in enumerate(entries, 1):
         _label = '%s-%s' % (label, _index)
-        _entry(local=kwargs, label=_label)
+        ret = _entry(local=kwargs, label=_label)
+        if ret is not None:
+            return ret

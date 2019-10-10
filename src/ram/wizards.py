@@ -86,7 +86,7 @@ class Unit(object):
             self.pause(**local)
 
         if (fatal and e):
-            raise e
+            return e
 
     def pause(self, **kwargs):
         return pause(**kwargs)
