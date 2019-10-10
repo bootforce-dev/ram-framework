@@ -3,10 +3,8 @@
 import os
 import time
 import select
-import multiprocessing as mp
 
-from contextlib import contextmanager
-
+from ram.process import running_py
 from ram.process import running_ps
 from ram.process import output
 from ram.process import _quote_cmd
@@ -117,9 +115,8 @@ def watch_stderr(command, *args):
 
 
 class IterWatch(Watch):
-    def __init__(self, iopipe, ioproc):
+    def __init__(self, iopipe):
         super(IterWatch, self).__init__(iopipe)
-        self.ioproc = ioproc
         self.eofile = False
 
     def status(self):
@@ -134,38 +131,23 @@ class IterWatch(Watch):
 
         if _tb:
             _et = type(obj)
-            _ev = str(obj) + _tb.rstrip()
-            raise _et(_ev)
+            raise _et("Unhandled exception in sub-process\n\n" + _tb.strip())
         else:
             return obj
 
 
-@contextmanager
 def watch_iterable(iterable, name=None):
-    r_pipe, w_pipe = mp.Pipe(duplex=False)
-
-    def _wrap_iter():
-        r_pipe.close()
+    def _wrap_iter(stdout=None):
         try:
             for obj in iterable:
-                w_pipe.send((obj, None))
+                stdout.send((obj, None))
         except BaseException as exc:
             from traceback import format_exc
-            _tb = "\nProcess: %s\n%s" % (
-                mp.current_process().name,
-                format_exc(),
-            )
+            _tb = "Process: %s\n%s" % (name, format_exc())
 
-            w_pipe.send((exc, _tb))
+            stdout.send((exc, _tb))
 
-    p = mp.Process(target=_wrap_iter, name=name)
-    try:
-        p.start()
-        w_pipe.close()
-        yield IterWatch(r_pipe, p)
-    finally:
-        p.terminate()
-        p.join()
+    return running_py(_wrap_iter, wrap=lambda p: IterWatch(p.stdout))
 
 
 def track_output(command, *args, **kwargs):

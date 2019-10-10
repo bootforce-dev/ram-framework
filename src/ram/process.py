@@ -184,6 +184,34 @@ def running_ps(command, *args, **kwargs):
                 pass
 
 
+@contextmanager
+def running_py(routine, **kwargs):
+    import multiprocessing as mp
+
+    name = kwargs.pop('name', None)
+    wrap = kwargs.pop('wrap', lambda _: _)
+
+    r_stdout, w_stdout = mp.Pipe(duplex=False)
+
+    def _wrap_func():
+        r_stdout.close()
+
+        try:
+            routine(stdout=w_stdout)
+        finally:
+            w_stdout.close()
+
+    proc = mp.Process(target=_wrap_func, name=name)
+    proc.stdout = r_stdout
+    try:
+        proc.start()
+        w_stdout.close()
+        yield wrap(proc)
+    finally:
+        proc.terminate()
+        proc.join()
+
+
 if __name__ == '__main__':
     from sys import argv
     launch = (
