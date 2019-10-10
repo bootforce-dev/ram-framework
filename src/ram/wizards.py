@@ -5,6 +5,32 @@ import ram.process
 from ram.watches import press_key
 
 
+def pause(**kwargs):
+    message = kwargs.pop('message', None)
+
+    timeout = kwargs.pop('timeout', None)
+    timeout = int(timeout) if timeout is not None else 0
+
+    shell = kwargs.pop('shell', False)
+    shell = (
+        shell if isinstance(shell, basestring) else
+        '/bin/sh' if shell else None
+    )
+
+    try:
+        press_key(message=message, timeout=abs(timeout))
+    except OverflowError:
+        if timeout > 0:
+            pass
+        else:
+            raise
+    except KeyboardInterrupt:
+        if shell:
+            ram.process.launch(shell)
+        else:
+            raise
+
+
 class Unit(object):
     def __init__(self, *steps, **kwargs):
         self.kwargs = kwargs
@@ -22,15 +48,6 @@ class Unit(object):
         pause = int(pause) if pause is not None else -1
 
         fatal = local.pop('fatal', False)
-
-        delay = local.pop('delay', None)
-        delay = int(delay) if delay is not None else 0
-
-        shell = local.pop('shell', False)
-        shell = (
-            shell if isinstance(shell, basestring) else
-            '/bin/sh' if shell else None
-        )
 
         label = local.pop('label', None)
         title = local.pop('title', None)
@@ -66,21 +83,13 @@ class Unit(object):
             print
 
         if (pause and e) or (pause > 0):
-            try:
-                press_key(timeout=abs(delay))
-            except OverflowError:
-                if delay > 0:
-                    pass
-                else:
-                    raise
-            except KeyboardInterrupt:
-                if shell:
-                    ram.process.launch(shell)
-                else:
-                    raise
+            self.pause(**local)
 
         if (fatal and e):
             raise e
+
+    def pause(self, **kwargs):
+        return pause(**kwargs)
 
     def run(self, *args, **kwargs):
         return self(*args, **kwargs)
