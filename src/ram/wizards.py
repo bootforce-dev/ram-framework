@@ -1,8 +1,7 @@
 #!/usr/bin/python
 
+import ram.console
 import ram.process
-
-from ram.watches import press_key
 
 
 def pause(**kwargs):
@@ -18,7 +17,7 @@ def pause(**kwargs):
     )
 
     try:
-        press_key(message=message, timeout=abs(timeout))
+        ram.console.waitkey(message=message, timeout=abs(timeout))
     except OverflowError:
         if timeout > 0:
             pass
