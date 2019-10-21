@@ -184,10 +184,15 @@ if __name__ == '__main__':
                 with open(version_path, 'w') as version_file:
                     version_file.write(self.distribution.get_version())
 
-    from pbr.version import VersionInfo
-
     __project__ = 'ram-framework'
-    __version__ = VersionInfo(__project__).release_string()
+    __version__ = open('./src/ram/VERSION').read().strip()
+
+    try:
+        from pbr.packaging import get_version
+
+        __version__ = get_version(None, pre_version=__version__)
+    except Exception:
+        pass
 
     setup(
         name=__project__,
