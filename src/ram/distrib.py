@@ -164,35 +164,8 @@ class RamDistribution(Distribution):
 
 
 if __name__ == '__main__':
-    try:
-        from setuptools.command import build_py
-    except ImportError:
-        from distutils.command import build_py
-
-    class _build_py(build_py.build_py):
-        def run(self):
-            build_py.build_py.run(self)
-
-            if not self.dry_run:
-                _data_of = 'ram'
-                for _package, _, _builddir, _ in self.data_files:
-                    if _package == _data_of:
-                        break
-                else:
-                    raise KeyError(_data_of)
-                version_path = os.path.join(_builddir, 'VERSION')
-                with open(version_path, 'w') as version_file:
-                    version_file.write(self.distribution.get_version())
-
     __project__ = 'ram-framework'
     __version__ = open('./src/ram/VERSION').read().strip()
-
-    try:
-        from pbr.packaging import get_version
-
-        __version__ = get_version(None, pre_version=__version__)
-    except Exception:
-        pass
 
     setup(
         name=__project__,
@@ -215,9 +188,6 @@ if __name__ == '__main__':
             ('/etc/bash_completion.d', ['etc/bash_completion.d/ram']),
         ],
         distclass=RamDistribution,
-        cmdclass={
-            'build_py': _build_py,
-        },
         scripts=['bin/ram', 'bin/ram-symbols'],
         classifiers=(
             'Development Status :: 3 - Alpha',
