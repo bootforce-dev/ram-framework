@@ -45,12 +45,12 @@ class NetworkConfiguration(object):
             if self.ifcfgs[ifname]:
                 yield ifname
 
-    def _modify_settings(net_config_method):
-        def _modify_settings_wrapper(self, ifname, *args, **kwargs):
+    def _may_be_loopback(net_config_method):
+        def _may_be_loopback_wrapper(self, ifname, *args, **kwargs):
             if not ifname:
                 ifname = 'lo'
-            net_config_method(self, ifname, *args, **kwargs)
-        return _modify_settings_wrapper
+            return net_config_method(self, ifname, *args, **kwargs)
+        return _may_be_loopback_wrapper
 
     def IsModified(self):
         return any([md.IsModified() for md in [self.config] + self.ifcfgs.values() + self.routes.values()])
@@ -58,7 +58,7 @@ class NetworkConfiguration(object):
     def IsLoopback(self, ifname):
         return ifname == 'lo'
 
-    @_modify_settings
+    @_may_be_loopback
     def DelIface(self, ifname):
         if self.IsLoopback(ifname):
             return
@@ -67,7 +67,7 @@ class NetworkConfiguration(object):
         self.ifcfgs[ifname].clear()
         self.routes[ifname].clear()
 
-    @_modify_settings
+    @_may_be_loopback
     def AddIface(self, ifname):
         self.ifcfgs[ifname] = env.cfgopen(_IFCFG_PATH + ifname, readonly=False, delempty=True)
         self.ifcfgs[ifname].update(self.DEFLOOP_NETCONF if self.IsLoopback(ifname) else self.DEFAULT_NETCONF)
@@ -77,7 +77,7 @@ class NetworkConfiguration(object):
     def GetIfaceDevName(self, ifname):
         return self.ifcfgs[ifname]['DEVICE'] or ifname
 
-    @_modify_settings
+    @_may_be_loopback
     def SetIfaceDevName(self, ifname, devname):
         if self.IsLoopback(ifname):
             return
@@ -90,7 +90,7 @@ class NetworkConfiguration(object):
 
         return ''
 
-    @_modify_settings
+    @_may_be_loopback
     def SetIfaceBootProto(self, ifname, bootproto):
         if self.IsLoopback(ifname) or (bootproto not in ['dhcp', 'bootp']):
             bootproto = 'none'
@@ -101,7 +101,7 @@ class NetworkConfiguration(object):
     def GetIfaceUseDhcp(self, ifname):
         return bool(self.GetIfaceBootProto(ifname))
 
-    @_modify_settings
+    @_may_be_loopback
     def SetIfaceUseDhcp(self, ifname, usedhcp):
         self.SetIfaceBootProto(ifname, "dhcp" if usedhcp else "")
 
@@ -111,7 +111,7 @@ class NetworkConfiguration(object):
         enabled = self.ifcfgs[ifname]['ONBOOT'] or 'yes'
         return not (enabled.lower() == 'no')
 
-    @_modify_settings
+    @_may_be_loopback
     def SetIfaceEnabled(self, ifname, enabled):
         if self.IsLoopback(ifname):
             return
@@ -123,7 +123,7 @@ class NetworkConfiguration(object):
                 return self.ifcfgs[ifname]['IPADDR' + suffix]
         return ''
 
-    @_modify_settings
+    @_may_be_loopback
     def SetIfaceIpAddress(self, ifname, ip_addr):
         self.ifcfgs[ifname]['IPADDR'] = ip_addr
         if 'IPADDR0' in self.ifcfgs[ifname]:
@@ -135,7 +135,7 @@ class NetworkConfiguration(object):
                 return self.ifcfgs[ifname]['NETMASK' + suffix]
         return ''
 
-    @_modify_settings
+    @_may_be_loopback
     def SetIfaceIpNetmask(self, ifname, netmask):
         self.ifcfgs[ifname]['NETMASK'] = netmask
         if 'NETMASK0' in self.ifcfgs[ifname]:
@@ -149,7 +149,7 @@ class NetworkConfiguration(object):
                 return ifname
         return ''
 
-    @_modify_settings
+    @_may_be_loopback
     def SetPeerDnsDevice(self, ifname):
         for ifover in reversed(list(self)):
             if ifover != ifname:
@@ -157,24 +157,27 @@ class NetworkConfiguration(object):
             else:
                 self.ifcfgs[ifover]['PEERDNS'] = 'yes'
 
+    @_may_be_loopback
     def GetIfacePrimaryDns(self, ifname):
-        return self.ifcfgs[ifname or "lo"]['DNS1']
+        return self.ifcfgs[ifname]['DNS1']
 
+    @_may_be_loopback
     def GetIfaceSecondaryDns(self, ifname):
-        return self.ifcfgs[ifname or "lo"]['DNS2']
+        return self.ifcfgs[ifname]['DNS2']
 
-    @_modify_settings
+    @_may_be_loopback
     def SetIfacePrimaryDns(self, ifname, srvaddr):
         self.ifcfgs[ifname]['DNS1'] = srvaddr
 
-    @_modify_settings
+    @_may_be_loopback
     def SetIfaceSecondaryDns(self, ifname, srvaddr):
         self.ifcfgs[ifname]['DNS2'] = srvaddr
 
+    @_may_be_loopback
     def GetIfaceSearchList(self, ifname):
-        return self.ifcfgs[ifname or "lo"]['DOMAIN']
+        return self.ifcfgs[ifname]['DOMAIN']
 
-    @_modify_settings
+    @_may_be_loopback
     def SetIfaceSearchList(self, ifname, domlist):
         self.ifcfgs[ifname]['DOMAIN'] = domlist
 
@@ -187,7 +190,7 @@ class NetworkConfiguration(object):
                 return ifname
         return ''
 
-    @_modify_settings
+    @_may_be_loopback
     def SetGatewayDevice(self, ifname):
         if self.IsLoopback(ifname):
             ifname = ''
@@ -201,7 +204,7 @@ class NetworkConfiguration(object):
     def GetIfaceIpGateway(self, ifname):
         return self.ifcfgs[ifname]['GATEWAY'] or self.config['GATEWAY']
 
-    @_modify_settings
+    @_may_be_loopback
     def SetIfaceIpGateway(self, ifname, gateway):
         self.config['GATEWAY'] = ''
         self.ifcfgs[ifname]['GATEWAY'] = gateway
@@ -209,7 +212,7 @@ class NetworkConfiguration(object):
     def GetIfaceGwIgnored(self, ifname):
         return (self.ifcfgs[ifname]['DHCLIENT_IGNORE_GATEWAY'] or 'no') == 'yes'
 
-    @_modify_settings
+    @_may_be_loopback
     def SetIfaceGwIgnored(self, ifname, ignored):
         self.ifcfgs[ifname]['DHCLIENT_IGNORE_GATEWAY'] = 'yes' if ignored else 'no'
 
@@ -226,7 +229,7 @@ class NetworkConfiguration(object):
             rtlist += [(address, netmask, gateway)]
         return rtlist
 
-    @_modify_settings
+    @_may_be_loopback
     def SetIfaceStaticRoutes(self, ifname, rtlist):
         self.routes[ifname].clear()
         for i, (address, netmask, gateway) in enumerate(rtlist):
@@ -244,7 +247,7 @@ class NetworkConfiguration(object):
     def GetIfaceProperty(self, ifname, prop):
         return self.ifcfgs[ifname][prop]
 
-    @_modify_settings
+    @_may_be_loopback
     def SetIfaceProperty(self, ifname, prop, value):
         self.ifcfgs[ifname][prop] = value
 
@@ -278,7 +281,8 @@ def _getDefaultIfConfigIter():
 def QueryNetworkConfiguration(error_cb=None):
     config = env.cfgopen(_NETWORKCFG, readonly=False, error_cb=error_cb)
 
-    ifiter = _getServiceIfConfigIter() or _getDefaultIfConfigIter()
+    ifiter = set(_getServiceIfConfigIter() or _getDefaultIfConfigIter())
+    ifiter.update((_IFCFG_PATH + "lo",))
 
     ifcfgs = OrderedDict()
     routes = OrderedDict()
@@ -309,7 +313,7 @@ def NetworkServiceRunInEffect():
 
 
 def StoreNetworkConfiguration(netconf):
-    if not netconf.config or not netconf.ifcfgs:
+    if not netconf.config and not netconf.ifcfgs:
         raise RuntimeError('Attempting to store empty configuration')
 
     netconf.config.sync()
