@@ -48,10 +48,13 @@ class install_ram(Command):
         self.root = None
         self.compile = None
         self.optimize = None
+        self.skip_build = None
+        self.build_base = None
 
     def finalize_options(self):
         self.set_undefined_options('install',
             ('root', 'root'),
+            ('skip_build', 'skip_build'),
         )
 
         self.set_undefined_options('install_lib',
@@ -59,8 +62,14 @@ class install_ram(Command):
             ('optimize', 'optimize'),
         )
 
+        self.set_undefined_options('build_ram',
+            ('build_base', 'build_base'),
+        )
+
         for (_dst, _src), _dist in self.distribution.ram_dists.items():
             _install = _dist.reinitialize_command('install', reinit_subcommands=True)
+            _install_build_base = os.path.join(self.build_base, 'ram', _src, '__pybuild__')
+            _install.skip_build = self.skip_build
             _install.root = self.root
 
             _install.install_scripts = os.path.join('$base', _dst)
