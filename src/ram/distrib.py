@@ -72,8 +72,8 @@ class install_ram(Command):
             _install.skip_build = self.skip_build
             _install.root = self.root
 
-            _install.install_scripts = os.path.join('$base', _dst)
-            _install.install_lib = os.path.join('$base', _dst)
+            _install.install_scripts = os.path.join('$platbase', _dst)
+            _install.install_lib = os.path.join('$platbase', _dst)
 
             _install_scripts = _dist.reinitialize_command('install_scripts')
 
