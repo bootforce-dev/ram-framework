@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import atexit
 
 import ram.channel

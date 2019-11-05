@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from ram.classes.module import UnitService
 from ram.classes.module import UseLocation
 from ram.classes import DumbResults

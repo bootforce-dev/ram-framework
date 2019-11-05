@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 def IterGatewayDevices(config):
     for ifname in config:
         iserror, warning = CheckGatewayDevice(config[ifname])

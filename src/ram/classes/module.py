@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from . import Service
 
 import ram.locator

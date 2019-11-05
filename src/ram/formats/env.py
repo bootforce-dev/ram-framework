@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from pipes import quote
 from shlex import shlex
 from string import ascii_letters, digits

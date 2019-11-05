@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 def IterPeerDnsDevices(config):
     for ifname in config:
         iserror, warning = CheckPeerDnsDevice(config[ifname])

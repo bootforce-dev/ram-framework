@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import gdbm
 import fcntl
 

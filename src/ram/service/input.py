@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import cPickle as pickle
 
 from ram.classes.module import UnitService

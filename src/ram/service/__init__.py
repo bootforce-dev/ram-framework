@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import pkgutil
 
 from ram.classes import Service

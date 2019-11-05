@@ -1,6 +1,3 @@
-#!/usr/bin/python
-
-
 import os
 
 from glob import iglob

@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import imp
 
 from contextlib import contextmanager

@@ -50,7 +50,7 @@ rmdir %{_sysconfdir}/ram || :
 %defattr(-,root,root,-)
 %license LICENSE
 %doc README.md
-%{_sysconfdir}/bash_completion.d/ram
+%{_sysconfdir}/bash_completion.d/ram.sh
 %{_bindir}/*
 %{python2_sitelib}/ram/
 %{python2_sitelib}/ram_framework-%{version}-py?.?.egg-info/

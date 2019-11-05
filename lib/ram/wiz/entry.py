@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from entry_iterable import RunDictEntry
 
 from entry_iterable import RunListEntry

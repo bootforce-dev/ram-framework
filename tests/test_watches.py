@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 try:
     import unittest
     unittest.TextTestResult

@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import ram.context
 
 with ram.context(__name__):

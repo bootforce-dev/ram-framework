@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import iniparse
 
 from ram.osutils import TrySubmit

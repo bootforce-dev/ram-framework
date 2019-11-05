@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from ram.classes import Service
 from ram.classes import DictResults
 

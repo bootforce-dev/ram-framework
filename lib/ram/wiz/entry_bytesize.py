@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from math import log10
 
 import ram.widgets

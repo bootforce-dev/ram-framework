@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from ram.osutils import getenv
 
 if getenv('RAMUSRIF') == 'shell':

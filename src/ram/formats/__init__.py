@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from functools import wraps
 from collections import MutableMapping
 

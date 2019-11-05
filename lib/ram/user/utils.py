@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import random
 import string
 import pwquality

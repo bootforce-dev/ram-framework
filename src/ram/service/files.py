@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from glob import iglob
 
 from ram.classes.module import UnitService

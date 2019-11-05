@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from setuptools import setup, find_packages
 from setuptools import Distribution, Command
 
@@ -194,7 +192,7 @@ if __name__ == '__main__':
         ],
         data_files=[
             ('share/ram', ['share/ram/srv.functions', 'share/ram/ram.functions']),
-            ('/etc/bash_completion.d', ['etc/bash_completion.d/ram']),
+            ('/etc/bash_completion.d', ['etc/bash_completion.d/ram.sh']),
         ],
         distclass=RamDistribution,
         scripts=['bin/ram', 'bin/ram-symbols'],

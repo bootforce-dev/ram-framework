@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from socket import inet_aton, inet_ntoa, error as socket_error
 
 import ram.context

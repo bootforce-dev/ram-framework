@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from ram.classes.module import UnitService
 from ram.classes.module import UseFilename
 from ram.classes import ReprResults

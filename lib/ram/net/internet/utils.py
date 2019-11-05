@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from urllib import splittype, splithost, splitnport, splituser, splitpasswd
 
 import ram.context

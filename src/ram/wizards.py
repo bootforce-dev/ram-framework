@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import ram.console
 import ram.process
 

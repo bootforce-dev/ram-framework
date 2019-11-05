@@ -1,5 +1,4 @@
-#!/usr/bin/python
-
+# ----
 
 class Results(object):
     def __init__(self, **kwargs):

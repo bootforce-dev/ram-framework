@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from string import digits
 from decimal import Decimal
 

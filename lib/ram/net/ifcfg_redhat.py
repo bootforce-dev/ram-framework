@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from glob import iglob
 from collections import OrderedDict
 from itertools import count as itercount

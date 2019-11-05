@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 from ram.formats.ini import cfgopen
 
 from collections import MutableMapping
