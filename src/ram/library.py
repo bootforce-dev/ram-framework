@@ -31,7 +31,8 @@ class PathControl(object):
         if not path:
             raise ValueError("Cannot insert empty path.")
 
-        pathlist = filter(bool, map(str.strip, open(pathfile).readlines()))
+        with ram.osutils.environ(RAMPATH=''):
+            pathlist = list(self)
         pathlist.insert(0, path)
 
         return self.assign(pathlist)
@@ -40,7 +41,8 @@ class PathControl(object):
         if not path:
             raise ValueError("Cannot remove empty path.")
 
-        pathlist = filter(bool, map(str.strip, open(pathfile).readlines()))
+        with ram.osutils.environ(RAMPATH=''):
+            pathlist = list(self)
         if not path in pathlist:
             return
         pathlist.remove(path)
