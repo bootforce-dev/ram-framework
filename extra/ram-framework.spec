@@ -27,12 +27,9 @@ Framework to manage product state and configuration
 
 %install
 %py2_install
+install -d %{buildroot}/%{_sysconfdir}/ram
 
 %post
-install -d %{_sysconfdir}/ram
-test -e %{_sysconfdir}/ram/ram.conf || touch %{_sysconfdir}/ram/ram.conf
-test -e %{_sysconfdir}/ram/location.list || touch %{_sysconfdir}/ram/location.list
-
 if [ "$1" -eq "1" ]; then
 	ram paths insert %{_exec_prefix}/lib/ram >/dev/null
 fi
@@ -42,14 +39,12 @@ if [ "$1" -eq "0" ]; then
 	ram paths remove %{_exec_prefix}/lib/ram >/dev/null
 fi
 
-test -s %{_sysconfdir}/ram/location.list || rm -f %{_sysconfdir}/ram/location.list
-test -s %{_sysconfdir}/ram/ram.conf || rm -f %{_sysconfdir}/ram/ram.conf
-rmdir %{_sysconfdir}/ram || :
-
 %files
-%defattr(-,root,root,-)
 %license LICENSE
 %doc README.md
+%dir %{_sysconfdir}/ram/
+%ghost %attr(644,-,-) %config(noreplace) %{_sysconfdir}/ram/location.list
+%ghost %attr(644,-,-) %config(noreplace) %{_sysconfdir}/ram/ram.conf
 %{_sysconfdir}/bash_completion.d/ram.sh
 %{_bindir}/*
 %{python2_sitelib}/ram/
@@ -58,5 +53,5 @@ rmdir %{_sysconfdir}/ram || :
 %{_datadir}/ram/
 
 %changelog
-* Tue Nov 5 2019 Roman Valov <roman.valov@gmail.com> - 0.4.10-1
-- initial package
+* Sun Nov 10 2019 Roman Valov <roman.valov@gmail.com> - 0.4.10-1
+- Initial package
