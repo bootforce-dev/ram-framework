@@ -11,8 +11,14 @@ Source0:	https://github.com/bootforce-dev/ram-framework/archive/%{scm_version}/%
 
 BuildRequires:	python2-devel
 BuildRequires:	python2-setuptools
-#Requires:	python-iniparse
-#Requires:	newt-python
+
+%if "%{python_version}" != "%{python2_version}"
+Requires:	python2-iniparse
+Requires:	python2-newt
+%else
+Requires:	python-iniparse
+Requires:	newt-python
+%endif
 
 BuildArch:	noarch
 
@@ -53,5 +59,5 @@ fi
 %{_datadir}/ram/
 
 %changelog
-* Sun Nov 10 2019 Roman Valov <roman.valov@gmail.com> - 0.4.10-1
+* Thu Nov 14 2019 Roman Valov <roman.valov@gmail.com> - 0.4.10-1
 - Initial package
