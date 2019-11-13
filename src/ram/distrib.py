@@ -171,6 +171,8 @@ class RamDistribution(Distribution):
 
 
 if __name__ == '__main__':
+    os.chdir(os.path.dirname(__file__) or '.')
+
     __project__ = 'ram-framework'
     __version__ = open('./src/ram/VERSION').read().strip()
 
