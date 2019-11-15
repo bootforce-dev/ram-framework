@@ -33,7 +33,6 @@ Framework to manage product state and configuration
 
 %install
 %py2_install
-install -d %{buildroot}/%{_sysconfdir}/ram
 install -Dp -m644 ./extra/bash-completion/ram.sh %{buildroot}/%{_sysconfdir}/bash_completion.d/ram.sh
 
 %post
@@ -49,7 +48,7 @@ fi
 %files
 %license LICENSE
 %doc README.md
-%dir %{_sysconfdir}/ram/
+%{_sysconfdir}/ram/
 %ghost %attr(644,-,-) %config(noreplace) %{_sysconfdir}/ram/location.list
 %ghost %attr(644,-,-) %config(noreplace) %{_sysconfdir}/ram/ram.conf
 %{_sysconfdir}/bash_completion.d/ram.sh

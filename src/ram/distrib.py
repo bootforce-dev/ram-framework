@@ -193,6 +193,7 @@ if __name__ == '__main__':
             ('lib/ram', 'lib/ram'),
         ],
         data_files=[
+            ('/etc/ram', ['etc/ram.conf.example']),
             ('share/ram', ['share/ram/srv.functions', 'share/ram/ram.functions']),
         ],
         distclass=RamDistribution,

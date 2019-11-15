@@ -30,7 +30,7 @@ class _IniConfig(SyncedDict):
         return self.ini_conf[self.section]
 
     def __sync__(self):
-        if not TrySubmit(self.filename, [str(self.ini_conf)]):
+        if not TrySubmit(self.filename, [str(self.ini_conf) + '\n']):
             raise IOError("Failed to update `%s`." % self.filename)
 
 
