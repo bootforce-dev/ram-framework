@@ -34,6 +34,7 @@ Framework to manage product state and configuration
 %install
 %py2_install
 install -d %{buildroot}/%{_sysconfdir}/ram
+install -Dp -m644 ./extra/bash-completion/ram.sh %{buildroot}/%{_sysconfdir}/bash_completion.d/ram.sh
 
 %post
 if [ "$1" -eq "1" ]; then
@@ -59,5 +60,5 @@ fi
 %{_datadir}/ram/
 
 %changelog
-* Thu Nov 14 2019 Roman Valov <roman.valov@gmail.com> - 0.4.10-1
+* Fri Nov 15 2019 Roman Valov <roman.valov@gmail.com> - 0.4.10-1
 - Initial package
