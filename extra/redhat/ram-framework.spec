@@ -37,12 +37,12 @@ install -Dp -m644 ./extra/bash-completion/ram.sh %{buildroot}/%{_sysconfdir}/bas
 
 %post
 if [ "$1" -eq "1" ]; then
-	ram paths insert %{_exec_prefix}/lib/ram >/dev/null
+	ram paths insert %{_exec_prefix}/lib/ram
 fi
 
 %preun
 if [ "$1" -eq "0" ]; then
-	ram paths remove %{_exec_prefix}/lib/ram >/dev/null
+	ram paths remove %{_exec_prefix}/lib/ram
 fi
 
 %files
@@ -59,5 +59,5 @@ fi
 %{_datadir}/ram/
 
 %changelog
-* Fri Nov 15 2019 Roman Valov <roman.valov@gmail.com> - 0.4.10-1
+* Fri Nov 22 2019 Roman Valov <roman.valov@gmail.com> - 0.4.10-1
 - Initial package
