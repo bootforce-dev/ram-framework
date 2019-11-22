@@ -1,9 +1,6 @@
 from glob import iglob
-from collections import OrderedDict
 from itertools import count as itercount
 from itertools import groupby
-
-import ram.process
 
 from ram.osutils import FileStamp
 from ram.formats import env
@@ -37,11 +34,20 @@ class NetworkConfiguration(object):
     def __init__(self, error_cb=None):
         self.error_cb = error_cb
         self.config = env.cfgopen(_NETWORKCFG, readonly=False, error_cb=self.error_cb)
-        self.ifcfgs = OrderedDict()
-        self.routes = OrderedDict()
+        self.ifcfgs = dict()
+        self.routes = dict()
+
+    def __sort__(self, ifname):
+        if self.IsLoopback(ifname):
+            return ()
+        else:
+            return tuple(
+                int("".join(data)) if flag else "".join(data)
+                for flag, data in groupby(ifname, str.isdigit)
+            )
 
     def __iter__(self):
-        return iter(self.ifcfgs)
+        return iter(sorted(self.ifcfgs, key=self.__sort__))
 
     def _may_be_loopback(net_config_method):
         def _may_be_loopback_wrapper(self, ifname, *args, **kwargs):
@@ -49,9 +55,6 @@ class NetworkConfiguration(object):
                 ifname = 'lo'
             return net_config_method(self, ifname, *args, **kwargs)
         return _may_be_loopback_wrapper
-
-    def IsModified(self):
-        return any([md.IsModified() for md in [self.config] + self.ifcfgs.values() + self.routes.values()])
 
     def IsLoopback(self, ifname):
         return ifname == 'lo'
@@ -271,13 +274,6 @@ class NetworkConfiguration(object):
         self.ifcfgs[ifname][prop] = value
 
 
-def IfConfigSortKey(ifname):
-    return tuple(
-        int("".join(data)) if flag else "".join(data)
-        for flag, data in groupby(ifname, str.isdigit)
-    )
-
-
 def IfConfigTest(ifname):
     if ifname.endswith(('~', '.bak', '.old', '.orig', '.rpmnew', '.rpmorig', '.rpmsave')):
         return False
@@ -288,14 +284,12 @@ def IfConfigTest(ifname):
 
 
 def IfConfigList():
-    return ['lo'] + sorted(
-        filter(
-            IfConfigTest,
-            map(
-                lambda _: _[len(_IFCFG_PATH):],
-                iglob(_IFCFG_GLOB)
-            )
-        ), key=IfConfigSortKey
+    return ['lo'] + filter(
+        IfConfigTest,
+        map(
+            lambda _: _[len(_IFCFG_PATH):],
+            iglob(_IFCFG_GLOB)
+        )
     )
 
 
