@@ -33,10 +33,11 @@ class NetworkConfiguration(object):
         'BROADCAST': '127.255.255.255',
     }
 
-    def __init__(self, config, ifcfgs, routes):
-        self.config = config
-        self.ifcfgs = ifcfgs
-        self.routes = routes
+    def __init__(self, error_cb=None):
+        self.error_cb = error_cb
+        self.config = env.cfgopen(_NETWORKCFG, readonly=False, error_cb=self.error_cb)
+        self.ifcfgs = OrderedDict()
+        self.routes = OrderedDict()
 
     def __iter__(self):
         for ifname in self.ifcfgs:
@@ -62,15 +63,28 @@ class NetworkConfiguration(object):
             return
         if ifname == self.config['GATEWAYDEV']:
             del self.config['GATEWAYDEV']
-        self.ifcfgs[ifname].clear()
-        self.routes[ifname].clear()
+        del self.ifcfgs[ifname]
+        del self.routes[ifname]
 
     @_may_be_loopback
     def AddIface(self, ifname):
-        self.ifcfgs[ifname] = env.cfgopen(_IFCFG_PATH + ifname, readonly=False, delempty=True)
+        self.AddIfaceFiles(ifname)
         self.ifcfgs[ifname].update(self.DEFLOOP_NETCONF if self.IsLoopback(ifname) else self.DEFAULT_NETCONF)
         self.ifcfgs[ifname]['DEVICE'] = ifname
-        self.routes[ifname] = env.cfgopen(_ROUTE_PATH + ifname, readonly=False, delempty=True)
+
+    @_may_be_loopback
+    def AddIfaceFiles(self, ifname):
+        self.ifcfgs[ifname] = env.cfgopen(_IFCFG_PATH + ifname, readonly=False, error_cb=self.error_cb)
+        self.routes[ifname] = env.cfgopen(_ROUTE_PATH + ifname, readonly=False, error_cb=self.error_cb)
+
+    @_may_be_loopback
+    def DelIfaceFiles(self, ifname):
+        _ifcfg = env.cfgopen(_IFCFG_PATH + ifname, readonly=False, delempty=True, error_cb=self.error_cb)
+        _ifcfg.clear()
+        _ifcfg.sync()
+        _route = env.cfgopen(_ROUTE_PATH + ifname, readonly=False, delempty=True, error_cb=self.error_cb)
+        _route.clear()
+        _route.sync()
 
     def GetIfaceDevName(self, ifname):
         return self.ifcfgs[ifname]['DEVICE'] or ifname
@@ -285,20 +299,17 @@ def _getDefaultIfConfigIter():
 
 
 def QueryNetworkConfiguration(error_cb=None):
-    config = env.cfgopen(_NETWORKCFG, readonly=False, error_cb=error_cb)
+    netconf = NetworkConfiguration(error_cb=error_cb)
 
     ifiter = set(_getServiceIfConfigIter() or _getDefaultIfConfigIter())
     ifiter.update((_IFCFG_PATH + "lo",))
 
-    ifcfgs = OrderedDict()
-    routes = OrderedDict()
     for fname in ifiter:
         short = fname[len(_IFCFG_PATH):]
-        route = _ROUTE_PATH + short
-        ifcfgs[short] = env.cfgopen(fname, readonly=False, delempty=True, error_cb=error_cb)
-        routes[short] = env.cfgopen(route, readonly=False, delempty=True, error_cb=error_cb)
+        if short not in netconf.ifcfgs:
+            netconf.AddIfaceFiles(short)
 
-    return NetworkConfiguration(config, ifcfgs, routes)
+    return netconf
 
 
 def NetworkConfigurationStamp():
@@ -322,20 +333,18 @@ def StoreNetworkConfiguration(netconf):
     if not netconf.config and not netconf.ifcfgs:
         raise RuntimeError('Attempting to store empty configuration')
 
-    netconf.config.sync()
-
     ifiter = _getServiceIfConfigIter() or _getDefaultIfConfigIter()
 
     for fname in ifiter:
         short = fname[len(_IFCFG_PATH):]
-        route = _ROUTE_PATH + short
         if short not in netconf.ifcfgs:
-            env.cfgopen(fname, readonly=False, delempty=True).sync()
-            env.cfgopen(route, readonly=False, delempty=True).sync()
+            netconf.DelIfaceFiles(short)
 
     for short in netconf.ifcfgs:
         netconf.ifcfgs[short].sync()
         netconf.routes[short].sync()
+
+    netconf.config.sync()
 
 
 if __name__ == '__main__':
