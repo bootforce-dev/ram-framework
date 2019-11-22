@@ -140,11 +140,16 @@ class NetworkConfiguration(object):
             del self.ifcfgs[ifname]['NETMASK0']
 
     def GetPeerDnsDevice(self):
-        for ifname in reversed(list(self)):
-            if self.IsLoopback(ifname):
+        for ifover in reversed(list(self)):
+            _value = self.ifcfgs[ifover]['PEERDNS'] or 'yes'
+
+            if _value == 'no':
                 continue
-            if not (self.ifcfgs[ifname]['PEERDNS'] or 'no') == 'no':
-                return ifname
+            elif self.IsLoopback(ifover):
+                continue
+            else:
+                return ifover
+
         return ''
 
     @_may_be_loopback
@@ -152,8 +157,8 @@ class NetworkConfiguration(object):
         for ifover in reversed(list(self)):
             if ifover != ifname:
                 self.ifcfgs[ifover]['PEERDNS'] = 'no'
-            else:
-                self.ifcfgs[ifover]['PEERDNS'] = 'yes'
+
+        self.ifcfgs[ifname]['PEERDNS'] = 'yes'
 
     @_may_be_loopback
     def GetIfacePrimaryDns(self, ifname):
@@ -180,24 +185,27 @@ class NetworkConfiguration(object):
         self.ifcfgs[ifname]['DOMAIN'] = domlist
 
     def GetGatewayDevice(self):
-        device = self.config['GATEWAYDEV']
-        for ifname in [device] if device in self.ifcfgs else reversed(list(self)):
-            if self.IsLoopback(ifname):
+        ifname = self.config['GATEWAYDEV']
+        for ifover in reversed(list(self)) if not ifname else [ifname]:
+            _value = self.ifcfgs[ifover]['DEFROUTE'] or 'yes'
+
+            if _value == 'no':
                 continue
-            if not (self.ifcfgs[ifname]['DEFROUTE'] or 'yes') == 'no':
-                return ifname
+            elif self.IsLoopback(ifover):
+                continue
+            else:
+                return ifover
+
         return ''
 
     @_may_be_loopback
     def SetGatewayDevice(self, ifname):
-        if self.IsLoopback(ifname):
-            ifname = ''
         for ifover in reversed(list(self)):
             if ifover != ifname:
                 self.ifcfgs[ifover]['DEFROUTE'] = 'no'
-            else:
-                self.ifcfgs[ifover]['DEFROUTE'] = 'yes'
-        self.config['GATEWAYDEV'] = ifname
+
+        self.ifcfgs[ifname]['DEFROUTE'] = 'yes'
+        self.config['GATEWAYDEV'] = '' if self.IsLoopback(ifname) else ifname
 
     def GetIfaceIpGateway(self, ifname):
         return self.ifcfgs[ifname]['GATEWAY'] or self.config['GATEWAY']

@@ -50,7 +50,7 @@ if __name__ == '__main__':
         netcfg.SetIfacePrimaryDns(None, config['resolver']['pri_dns'])
         netcfg.SetIfaceSecondaryDns(None, config['resolver']['sec_dns'])
         netcfg.SetIfaceSearchList(None, config['resolver']['domains'])
-    elif peerdns in netcfg:
+    else:
         netcfg.SetIfacePrimaryDns(peerdns, "")
         netcfg.SetIfaceSecondaryDns(peerdns, "")
         netcfg.SetIfaceSearchList(peerdns, "")
