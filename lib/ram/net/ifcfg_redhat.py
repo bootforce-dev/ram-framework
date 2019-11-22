@@ -1,6 +1,7 @@
 from glob import iglob
 from collections import OrderedDict
 from itertools import count as itercount
+from itertools import groupby
 
 import ram.process
 
@@ -40,9 +41,7 @@ class NetworkConfiguration(object):
         self.routes = OrderedDict()
 
     def __iter__(self):
-        for ifname in self.ifcfgs:
-            if self.ifcfgs[ifname]:
-                yield ifname
+        return iter(self.ifcfgs)
 
     def _may_be_loopback(net_config_method):
         def _may_be_loopback_wrapper(self, ifname, *args, **kwargs):
@@ -272,42 +271,42 @@ class NetworkConfiguration(object):
         self.ifcfgs[ifname][prop] = value
 
 
-def _isValidConfigurationFilename(filename):
-    return not filename.endswith(('.rpmsave', '.rpmnew', '-range', '~'))
+def IfConfigSortKey(ifname):
+    return tuple(
+        int("".join(data)) if flag else "".join(data)
+        for flag, data in groupby(ifname, str.isdigit)
+    )
 
 
-# network service walk through interfaces list in special
-# order given by sed+sort shell expression which is hard
-# to emulate using python. Therefore to keep interface order
-# in sync with network service this function just parses
-# output of service command. Some kind of fallback should
-# be used in case of errors.
-
-def _getServiceIfConfigIter():
-    try:
-        output = ram.process.output([_NETWORKSRV, 'status'])
-        _lines = output.splitlines()
-        if _lines[0] == 'Configured devices:':
-            return (_IFCFG_PATH + ifname for ifname in _lines[1].split())
-    except Exception:
-        pass
-    return None
+def IfConfigTest(ifname):
+    if ifname.endswith(('~', '.bak', '.old', '.orig', '.rpmnew', '.rpmorig', '.rpmsave')):
+        return False
+    elif ifname == 'lo' or ifname.endswith(('-range')) or ':' in ifname:
+        return False
+    else:
+        return True
 
 
-def _getDefaultIfConfigIter():
-    return (ifconf for ifconf in iglob(_IFCFG_GLOB) if _isValidConfigurationFilename(ifconf))
+def IfConfigList():
+    return ['lo'] + sorted(
+        filter(
+            IfConfigTest,
+            map(
+                lambda _: _[len(_IFCFG_PATH):],
+                iglob(_IFCFG_GLOB)
+            )
+        ), key=IfConfigSortKey
+    )
 
 
 def QueryNetworkConfiguration(error_cb=None):
     netconf = NetworkConfiguration(error_cb=error_cb)
 
-    ifiter = set(_getServiceIfConfigIter() or _getDefaultIfConfigIter())
-    ifiter.update((_IFCFG_PATH + "lo",))
-
-    for fname in ifiter:
-        short = fname[len(_IFCFG_PATH):]
-        if short not in netconf.ifcfgs:
-            netconf.AddIfaceFiles(short)
+    for ifname in IfConfigList():
+        if ifname not in netconf.ifcfgs:
+            netconf.AddIfaceFiles(ifname)
+        else:
+            raise RuntimeError('Interface configuration already exists: `%s`.' % ifname)
 
     return netconf
 
@@ -315,12 +314,10 @@ def QueryNetworkConfiguration(error_cb=None):
 def NetworkConfigurationStamp():
     tstamp = max([FileStamp(_NETWORKCFG), FileStamp(_IFCFG_ROOT)])
 
-    ifiter = _getServiceIfConfigIter() or _getDefaultIfConfigIter()
-
-    for fname in ifiter:
-        short = fname[len(_IFCFG_PATH):]
-        route = _ROUTE_PATH + short
-        tstamp = max([tstamp, FileStamp(fname), FileStamp(route)])
+    for ifname in IfConfigList():
+        ifcfg = _IFCFG_PATH + ifname
+        route = _ROUTE_PATH + ifname
+        tstamp = max([tstamp, FileStamp(ifcfg), FileStamp(route)])
 
     return tstamp
 
@@ -333,16 +330,13 @@ def StoreNetworkConfiguration(netconf):
     if not netconf.config and not netconf.ifcfgs:
         raise RuntimeError('Attempting to store empty configuration')
 
-    ifiter = _getServiceIfConfigIter() or _getDefaultIfConfigIter()
+    for ifname in IfConfigList():
+        if ifname not in netconf.ifcfgs:
+            netconf.DelIfaceFiles(ifname)
 
-    for fname in ifiter:
-        short = fname[len(_IFCFG_PATH):]
-        if short not in netconf.ifcfgs:
-            netconf.DelIfaceFiles(short)
-
-    for short in netconf.ifcfgs:
-        netconf.ifcfgs[short].sync()
-        netconf.routes[short].sync()
+    for ifname in netconf.ifcfgs:
+        netconf.ifcfgs[ifname].sync()
+        netconf.routes[ifname].sync()
 
     netconf.config.sync()
 
