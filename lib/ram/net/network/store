@@ -31,6 +31,7 @@ if __name__ == '__main__':
     for ifname in netcfg:
         if netcfg.IsLoopback(ifname):
             continue
+        netcfg.SetIfaceDevName(ifname, config['ifconfig'][ifname]['devname'])
         netcfg.SetIfaceEnabled(ifname, config['ifconfig'][ifname]['enabled'])
         netcfg.SetIfaceUseDhcp(ifname, config['ifconfig'][ifname]['usedhcp'])
         netcfg.SetIfaceIpAddress(ifname, config['ifconfig'][ifname]['ip_addr'])

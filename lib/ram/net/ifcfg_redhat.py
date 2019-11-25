@@ -18,8 +18,8 @@ _IFCFG_GLOB = _IFCFG_PATH + '*'
 class NetworkConfiguration(object):
     DEFAULT_NETCONF = {
         'ONBOOT': 'yes',
-        'BOOTPROTO': 'dhcp',
-        'PERSISTENT_DHCLIENT': 'yes',
+        'BOOTPROTO': 'none',
+        'PERSISTENT_DHCLIENT': 'no',
         'DEFROUTE': 'no',
         'PEERDNS': 'no',
     }
@@ -107,10 +107,11 @@ class NetworkConfiguration(object):
     @_may_be_loopback
     def SetIfaceBootProto(self, ifname, bootproto):
         if self.IsLoopback(ifname) or (bootproto not in ['dhcp', 'bootp']):
-            bootproto = 'none'
+            self.ifcfgs[ifname]['BOOTPROTO'] = 'none'
+            self.ifcfgs[ifname]['PERSISTENT_DHCLIENT'] = 'no'
         else:
+            self.ifcfgs[ifname]['BOOTPROTO'] = bootproto
             self.ifcfgs[ifname]['PERSISTENT_DHCLIENT'] = 'yes'
-        self.ifcfgs[ifname]['BOOTPROTO'] = bootproto
 
     def GetIfaceUseDhcp(self, ifname):
         return bool(self.GetIfaceBootProto(ifname))
@@ -232,7 +233,8 @@ class NetworkConfiguration(object):
         self.ifcfgs[ifname]['GATEWAY'] = gateway
 
     def GetIfaceGwIgnored(self, ifname):
-        return (self.ifcfgs[ifname]['DHCLIENT_IGNORE_GATEWAY'] or 'no') == 'yes'
+        _value = self.ifcfgs[ifname]['DHCLIENT_IGNORE_GATEWAY'] or 'no'
+        return _value == 'yes'
 
     @_may_be_loopback
     def SetIfaceGwIgnored(self, ifname, ignored):
