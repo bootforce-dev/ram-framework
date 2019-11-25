@@ -1,6 +1,6 @@
 def IterGatewayDevices(config):
     for ifname in config:
-        iserror, warning = CheckGatewayDevice(config[ifname])
+        iserror, warning = ProbeGatewayDevice(config[ifname])
         if iserror:
             continue
         else:
@@ -9,7 +9,7 @@ def IterGatewayDevices(config):
 def ListGatewayDevices(config):
     return dict(IterGatewayDevices(config))
 
-def CheckGatewayDevice(_ifconf):
+def ProbeGatewayDevice(_ifconf):
     if not _ifconf or _ifconf['defconf']:
         return True, "ERROR: Device is not configured!"
 

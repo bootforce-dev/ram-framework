@@ -5,7 +5,7 @@ import ram.widgets
 with ram.context(__name__):
     from ..utils import ValidateDomainList, ValidateEmptyOrIpV4
     from .utils import ListPeerDnsDevices
-    from .utils import CheckPeerDnsDevice
+    from .utils import ProbePeerDnsDevice
 
 from ram.widgets import *
 
@@ -43,7 +43,7 @@ def EnsurePeerDnsDevice(config):
 
     if ifname_:
         ifconf_ = config['ifconfig'][ifname_]
-        iserror_, warning_ = CheckPeerDnsDevice(ifconf_)
+        iserror_, warning_ = ProbePeerDnsDevice(ifconf_)
 
         if not warning_:
             pass
@@ -118,7 +118,7 @@ def RunDnsConfigurationMenu(config, wizard):
             sec_dns = "dhcp"
 
             _ifconf = config['ifconfig'][peerdns]
-            iserror, warning = CheckPeerDnsDevice(_ifconf)
+            iserror, warning = ProbePeerDnsDevice(_ifconf)
 
         return [
             ("%-16s < %6s >" % ("Use DHCP:", peerdns.center(6)), __SelectPeerDnsDevice),
@@ -147,7 +147,7 @@ def RemovePeerDnsDevice(config, show_confirm=True, edit_address=False):
     if show_confirm:
         if ifname_:
             ifconf_ = config['ifconfig'][ifname_]
-            iserror_, warning_ = CheckPeerDnsDevice(ifconf_)
+            iserror_, warning_ = ProbePeerDnsDevice(ifconf_)
 
             if not ram.widgets.AskViaButtons(
                 "Use static configuration?",
@@ -172,7 +172,7 @@ def ModifyPeerDnsDevice(config, ifname, show_confirm=True):
     ifconf = config['ifconfig'][ifname]
 
     if show_confirm:
-        iserror, warning = CheckPeerDnsDevice(ifconf)
+        iserror, warning = ProbePeerDnsDevice(ifconf)
 
         if ifname_ == ifname:
             if not warning:
@@ -206,7 +206,7 @@ def ModifyPeerDnsDevice(config, ifname, show_confirm=True):
                 return
         else:
             ifconf_ = config['ifconfig'][ifname_]
-            iserror_, warning_ = CheckPeerDnsDevice(ifconf_)
+            iserror_, warning_ = ProbePeerDnsDevice(ifconf_)
 
             if not ram.widgets.AskViaButtons(
                 "Change device to obtain DNS addresses?",

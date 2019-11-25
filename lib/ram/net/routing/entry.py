@@ -5,7 +5,7 @@ import ram.widgets
 with ram.context(__name__):
     from ..utils import ValidateEmptyOrIpV4, ValidateIpV4
     from .utils import ListGatewayDevices
-    from .utils import CheckGatewayDevice
+    from .utils import ProbeGatewayDevice
     from .utils import ShownGatewayIpAddr
 
 
@@ -42,7 +42,7 @@ def EnsureGatewayDevice(config):
 
     if ifname_:
         ifconf_ = config['ifconfig'][ifname_]
-        iserror_, warning_ = CheckGatewayDevice(ifconf_)
+        iserror_, warning_ = ProbeGatewayDevice(ifconf_)
 
         if not warning_:
             pass
@@ -111,7 +111,7 @@ def RoutesConfigurationMenu(config, wizard):
         else:
             _ifconf = config['ifconfig'][default]
             gateway = ShownGatewayIpAddr(_ifconf)
-            iserror, warning = CheckGatewayDevice(_ifconf)
+            iserror, warning = ProbeGatewayDevice(_ifconf)
 
         return [
             ("%-16s" % ("Default route:"), 0),
@@ -139,7 +139,7 @@ def RemoveGatewayDevice(config, show_confirm=True):
     if show_confirm:
         if ifname_:
             ifconf_ = config['ifconfig'][ifname_]
-            iserror_, warning_ = CheckGatewayDevice(ifconf_)
+            iserror_, warning_ = ProbeGatewayDevice(ifconf_)
 
             if not ram.widgets.AskViaButtons(
                 "Remove device to use as default gateway?",
@@ -161,7 +161,7 @@ def ModifyGatewayDevice(config, ifname, show_confirm=True, edit_address=False):
     ifconf = config['ifconfig'][ifname]
 
     if show_confirm:
-        iserror, warning = CheckGatewayDevice(ifconf)
+        iserror, warning = ProbeGatewayDevice(ifconf)
 
         if ifname_ == ifname:
             if not warning:
@@ -195,7 +195,7 @@ def ModifyGatewayDevice(config, ifname, show_confirm=True, edit_address=False):
                 return
         else:
             ifconf_ = config['ifconfig'][ifname_]
-            iserror_, warning_ = CheckGatewayDevice(ifconf_)
+            iserror_, warning_ = ProbeGatewayDevice(ifconf_)
 
             if not ram.widgets.AskViaButtons(
                 "Change device to use as default gateway?",

@@ -1,6 +1,6 @@
 def IterPeerDnsDevices(config):
     for ifname in config:
-        iserror, warning = CheckPeerDnsDevice(config[ifname])
+        iserror, warning = ProbePeerDnsDevice(config[ifname])
         if iserror:
             continue
         else:
@@ -9,7 +9,7 @@ def IterPeerDnsDevices(config):
 def ListPeerDnsDevices(config):
     return dict(IterPeerDnsDevices(config))
 
-def CheckPeerDnsDevice(_ifconf):
+def ProbePeerDnsDevice(_ifconf):
     if not _ifconf or _ifconf['defconf']:
         return True, "ERROR: Device is not configured!"
 
