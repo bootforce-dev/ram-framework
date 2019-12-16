@@ -38,22 +38,19 @@ if __name__ == '__main__':
         netcfg.SetIfaceIpNetmask(ifname, config['ifconfig'][ifname]['netmask'])
         netcfg.SetIfaceGwIgnored(ifname, config['ifconfig'][ifname]['ignored'])
         netcfg.SetIfaceIpGateway(ifname, config['ifconfig'][ifname]['gateway'])
+        netcfg.SetIfacePeerDns(ifname, config['ifconfig'][ifname]['peerdns'])
+        netcfg.SetIfacePrimaryDns(ifname, config['ifconfig'][ifname]['pri_dns'])
+        netcfg.SetIfaceSecondaryDns(ifname, config['ifconfig'][ifname]['sec_dns'])
+        netcfg.SetIfaceSearchList(ifname, config['ifconfig'][ifname]['domains'])
 
     # routing
     default = config['routing']['default']
     netcfg.SetGatewayDevice(default)
 
     # resolver
-    peerdns = config['resolver']['peerdns']
-    netcfg.SetPeerDnsDevice(peerdns)
-
-    if not peerdns:
-        netcfg.SetIfacePrimaryDns(None, config['resolver']['pri_dns'])
-        netcfg.SetIfaceSecondaryDns(None, config['resolver']['sec_dns'])
-        netcfg.SetIfaceSearchList(None, config['resolver']['domains'])
-    else:
-        netcfg.SetIfacePrimaryDns(peerdns, "")
-        netcfg.SetIfaceSecondaryDns(peerdns, "")
-        netcfg.SetIfaceSearchList(peerdns, "")
+    netcfg.SetPeerDnsDevice(config['resolver']['peerdns'])
+    netcfg.SetIfacePrimaryDns(None, config['resolver']['pri_dns'])
+    netcfg.SetIfaceSecondaryDns(None, config['resolver']['sec_dns'])
+    netcfg.SetIfaceSearchList(None, config['resolver']['domains'])
 
     StoreNetworkConfiguration(netcfg)

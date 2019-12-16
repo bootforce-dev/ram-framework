@@ -43,6 +43,10 @@ if __name__ == '__main__':
         config['ifconfig'][ifname]['defconf'] = ""
         config['ifconfig'][ifname]['ignored'] = "_" if netcfg.GetIfaceGwIgnored(ifname) else ""
         config['ifconfig'][ifname]['gateway'] = netcfg.GetIfaceIpGateway(ifname)
+        config['ifconfig'][ifname]['peerdns'] = "_" if netcfg.GetIfacePeerDns(ifname) else ""
+        config['ifconfig'][ifname]['pri_dns'] = netcfg.GetIfacePrimaryDns(ifname)
+        config['ifconfig'][ifname]['sec_dns'] = netcfg.GetIfaceSecondaryDns(ifname)
+        config['ifconfig'][ifname]['domains'] = netcfg.GetIfaceSearchList(ifname)
 
     # routing
     config['routing']['default'] = netcfg.GetGatewayDevice()

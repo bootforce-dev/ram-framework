@@ -6,6 +6,7 @@ with ram.context(__name__):
     from ..utils import ValidateDomainList, ValidateEmptyOrIpV4
     from .utils import ListPeerDnsDevices
     from .utils import ProbePeerDnsDevice
+    from .utils import CheckPeerDnsDevice
 
 from ram.widgets import *
 
@@ -42,8 +43,7 @@ def EnsurePeerDnsDevice(config):
     ifname_ = config['resolver']['peerdns']
 
     if ifname_:
-        ifconf_ = config['ifconfig'][ifname_]
-        iserror_, warning_ = ProbePeerDnsDevice(ifconf_)
+        iserror_, warning_ = CheckPeerDnsDevice(config['ifconfig'], ifname_)
 
         if not warning_:
             pass
@@ -117,8 +117,7 @@ def RunDnsConfigurationMenu(config, wizard):
             pri_dns = "dhcp"
             sec_dns = "dhcp"
 
-            _ifconf = config['ifconfig'][peerdns]
-            iserror, warning = ProbePeerDnsDevice(_ifconf)
+            iserror, warning = CheckPeerDnsDevice(config['ifconfig'], peerdns)
 
         return [
             ("%-16s < %6s >" % ("Use DHCP:", peerdns.center(6)), __SelectPeerDnsDevice),
@@ -146,8 +145,7 @@ def RemovePeerDnsDevice(config, show_confirm=True, edit_address=False):
 
     if show_confirm:
         if ifname_:
-            ifconf_ = config['ifconfig'][ifname_]
-            iserror_, warning_ = ProbePeerDnsDevice(ifconf_)
+            iserror_, warning_ = CheckPeerDnsDevice(config['ifconfig'], ifname_)
 
             if not ram.widgets.AskViaButtons(
                 "Use static configuration?",
@@ -205,8 +203,7 @@ def ModifyPeerDnsDevice(config, ifname, show_confirm=True):
             ):
                 return
         else:
-            ifconf_ = config['ifconfig'][ifname_]
-            iserror_, warning_ = ProbePeerDnsDevice(ifconf_)
+            iserror_, warning_ = ProbePeerDnsDevice(config['ifconfig'], ifname_)
 
             if not ram.widgets.AskViaButtons(
                 "Change device to obtain DNS addresses?",
@@ -223,3 +220,32 @@ def ModifyPeerDnsDevice(config, ifname, show_confirm=True):
                 return
 
     config['resolver']['peerdns'] = ifname
+
+
+def CompatPeerDnsConfig(config):
+    # multiple non-lo peer dns devices
+    # non-lo devices with static dnses
+
+    peerdns = []
+    confdns = []
+
+    for ifname in config['ifconfig']:
+        ifconf = config['ifconfig'][ifname]
+
+        if ifconf['domains'] or ifconf['pri_dns'] or ifconf['sec_dns']:
+            confdns += [ifname]
+
+        if ifconf['peerdns']:
+            peerdns += [ifname]
+
+    if not confdns and not peerdns[1:]:
+        return True
+    elif not ram.widgets.AskViaButtons(
+        "Ambiguous DNS configuration",
+        "Current configuration of DNS is ambiguous\n\n"
+        "Would you like to reset DNS configuration?",
+        "Select device ...", "Go back",
+    ):
+        return False
+
+    return True

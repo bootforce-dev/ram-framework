@@ -7,11 +7,15 @@ with ram.context(__name__):
     from entry import RunDnsConfigurationMenu
     from entry import RemovePeerDnsDevice
     from entry import ModifyPeerDnsDevice
+    from entry import CompatPeerDnsConfig
 
 
 if __name__ == '__main__':
     config = ram.query('net.network')
     params = ram.param()
+
+    if not CompatPeerDnsConfig(config):
+        raise SystemExit()
 
     if not params.device:
         RunDnsConfigurationMenu(config, params.wizard)

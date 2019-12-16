@@ -9,6 +9,19 @@ def IterPeerDnsDevices(config):
 def ListPeerDnsDevices(config):
     return dict(IterPeerDnsDevices(config))
 
+
+def CheckPeerDnsConfig(config):
+    pass
+
+
+def CheckPeerDnsDevice(config, peerdns):
+    _iflist = peerdns.split()
+
+    if len(_iflist) != 1:
+        return True, "ERROR: Several devices selected!"
+    else:
+        return ProbePeerDnsDevice(config[peerdns])
+
 def ProbePeerDnsDevice(_ifconf):
     if not _ifconf or _ifconf['defconf']:
         return True, "ERROR: Device is not configured!"
