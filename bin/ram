@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import sys
 
 import ram
@@ -13,6 +14,9 @@ _debug = ram.options['debug']
 if __name__ == '__main__':
     ramexec = sys.argv.pop(0)
     srvname = sys.argv.pop(0) if sys.argv else ''
+
+    print sys.path
+    print os.environ.get('PYTHONPATH')
 
     try:
         if srvname:

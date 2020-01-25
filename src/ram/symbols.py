@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from collections import Iterable, Mapping, MutableMapping
+from collections import Iterable, Sequence, Mapping, MutableMapping
 
 
 def build(*keys, **data):
@@ -88,8 +88,8 @@ class Symbols(MutableMapping, dict):
 
     def __setitem__(self, keypath, value, private=False):
         if not private:
-            if not isinstance(value, basestring) and not isinstance(value, Mapping) and not value is None:
-                raise ValueError('Symbols can only contain strings or mappings, not `%s`' % (value,))
+#            if not isinstance(value, basestring) and not isinstance(value, Mapping) and not isinstance(value, Sequence) and not value is None:
+#                raise ValueError('Symbols can only contain strings or mappings, not `%s`' % (value,))
 
             if not value:
                 return self.__delitem__(keypath)
@@ -107,8 +107,14 @@ class Symbols(MutableMapping, dict):
                 symbols[keypath] = value
                 return
 
-        if isinstance(value, Mapping):
+        if isinstance(value, basestring):
+            pass
+        elif isinstance(value, Mapping):
             value = Symbols(self, keyhead, value)
+        elif isinstance(value, Sequence):
+            value = Symbols(self, keyhead, dict(('_%i' % i, v) for (i, v) in enumerate(value)))
+        else:
+            value = str(value)
 
         return dict.__setitem__(self, keyhead, value)
 
@@ -206,5 +212,7 @@ class __api__(object):
             return Symbols(None, None, _input)
         elif isinstance(_input, basestring):
             return Symbols(None, None, parse(_input.splitlines()))
+        elif isinstance(_input, Sequence):
+            return Symbols(None, None, dict(('_%i' % i, v) for (i, v) in enumerate(_input)))
         else:
             return Symbols(None, None, parse(_input.readlines()))
